@@ -2,7 +2,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { Icon, PillIcon } from '../../components/art';
 import { Btn, Card, Header, ScreenTitle, s } from '../../components/ui';
-import { doseTxt, freqTxt, isFinished, timesTxt } from '../../lib/dose';
+import { doseTxt, fmtStock, freqTxt, isFinished, stockInfo, timesTxt } from '../../lib/dose';
 import { useApp } from '../../lib/store';
 import { C, shadow } from '../../theme';
 
@@ -34,6 +34,14 @@ export default function Medicamentos() {
                 <Text style={st.meta} numberOfLines={2}>
                   {timesTxt(m)}
                 </Text>
+                {(() => {
+                  const info = stockInfo(m);
+                  return info ? (
+                    <Text style={[st.meta, { color: info.low ? C.bad : C.ok, fontWeight: '700' }]}>
+                      {info.out ? 'Sin existencias' : `Quedan ${fmtStock(info.stock)} ${info.unit}`}
+                    </Text>
+                  ) : null;
+                })()}
               </Pressable>
             ))}
           </View>

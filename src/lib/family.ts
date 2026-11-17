@@ -15,6 +15,7 @@ const TITLES: Record<EventType, (who: string, med: string) => string> = {
   proof: (w, m) => `${w} marcó ${m} como tomada`,
   skipped: (w, m) => `${w} omitió ${m}`,
   rejected: (w, m) => `Foto no verificada: ${m} (${w})`,
+  lowstock: (w, m) => `A ${w} le quedan pocas unidades de ${m}`,
 };
 
 export function eventText(type: EventType, inst: DoseInstance, extra = ''): string {
@@ -28,6 +29,8 @@ export function eventText(type: EventType, inst: DoseInstance, extra = ''): stri
       return `${base} Se marcó como omitida.`;
     case 'rejected':
       return `${base} La IA no pudo confirmar la foto. ${extra}`;
+    case 'lowstock':
+      return extra || `Quedan pocas unidades de ${inst.med.name}. Hay que comprar más.`;
   }
 }
 

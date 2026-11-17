@@ -145,3 +145,52 @@ ${patientContext(s)}`;
     return res.response.text().trim();
   });
 }
+
+/** Datos que la IA lee en la caja o el frasco de un medicamento. */
+export interface BoxInfo {
+  nombre: string;
+  dosis_cantidad: string; // "500", "2,5"; vacío si no se lee
+  dosis_unidad: string; // mg, g, mcg, UI, ml, gotas, cucharadas, mg/ml
+  tipo: 'pill' | 'liquid';
+  unidades_caja: number; // comprimidos o ml que trae; 0 si no se lee
+  legible: boolean;
+}
+
+const BOX_SCHEMA = Schema.object({
+  properties: {
+    legible: Schema.boolean({ description: 'true si se ve un envase de medicamento y se puede leer su nombre' }),
+    nombre: Schema.string({ description: 'Nombre comercial o principio activo, como aparece en el envase. Vacío si no se lee.' }),
+    dosis_cantidad: Schema.string({ description: 'Solo el número de la concentración por unidad (p. ej. "500" o "2,5"). Vacío si no se lee.' }),
+    dosis_unidad: Schema.enumString({ enum: ['mg', 'g', 'mcg', 'UI', 'ml', 'gotas', 'cucharadas', 'mg/ml'] }),
+    tipo: Schema.enumString({ enum: ['pill', 'liquid'], description: 'pill: comprimidos, cápsulas, grageas. liquid: jarabe, gotas, solución, suspensión.' }),
+    unidades_caja: Schema.integer({ description: 'Comprimidos o cápsulas que trae (o ml del frasco). 0 si no se lee.' }),
+  },
+});
+
+/** Lee la caja o el frasco de un medicamento para rellenar el formulario. */
+export async function readMedBox(jpegBase64: string): Promise<BoxInfo> {
+  const prompt = `Eres el asistente de una app de recordatorio de medicamentos. La foto muestra la caja, el blíster o el frasco de un medicamento.
+Lee los datos impresos y devuélvelos para rellenar el formulario:
+- nombre: el nombre del medicamento tal como aparece (marca o principio activo), sin la dosis.
+- dosis_cantidad y dosis_unidad: la concentración por comprimido o por dosis (p. ej. 500 mg). En jarabes suele expresarse en mg/ml o mg/5 ml: usa mg/ml si aparece así.
+- tipo: pill si son comprimidos o cápsulas; liquid si es jarabe, gotas, solución o suspensión.
+- unidades_caja: cuántos comprimidos o cápsulas trae, o cuántos ml tiene el frasco.
+No inventes datos: si algo no se lee con claridad, déjalo vacío (o 0). Si la foto no muestra un medicamento, marca legible = false.`;
+  return withModel(async (name) => {
+    const model = getGenerativeModel(
+      ai,
+      { model: name, generationConfig: { responseMimeType: 'application/json', responseSchema: BOX_SCHEMA, temperature: 0.1 } },
+      { timeout: TIMEOUT_MS },
+    );
+    const res = await model.generateContent([prompt, { type: 'inlineData', inlineData: { mimeType: 'image/jpeg', data: jpegBase64 } }]);
+    const v = JSON.parse(res.response.text()) as BoxInfo;
+    return {
+      legible: !!v.legible,
+      nombre: String(v.nombre ?? '').trim(),
+      dosis_cantidad: String(v.dosis_cantidad ?? '').replace(/[^0-9.,]/g, ''),
+      dosis_unidad: String(v.dosis_unidad ?? ''),
+      tipo: v.tipo === 'liquid' ? 'liquid' : 'pill',
+      unidades_caja: Math.max(0, Math.round(Number(v.unidades_caja) || 0)),
+    };
+  });
+}

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Icon } from '../../components/art';
-import { Card, DoseRow, Header, s } from '../../components/ui';
+import { router } from 'expo-router';
+import { Btn, Card, DoseRow, Header, s } from '../../components/ui';
 import { adherence, dayScore, dkey, instancesFor, parseKey, streak } from '../../lib/dose';
 import { useApp } from '../../lib/store';
 import { C, shadow } from '../../theme';
@@ -43,6 +44,7 @@ export default function Historial() {
     <View style={{ flex: 1 }}>
       <Header title="Historial" />
       <ScrollView contentContainerStyle={s.screen}>
+        <Btn icon="send" title="Informe para el médico" onPress={() => router.push('/informe')} />
         <View style={st.stats}>
           <Stat value={a7 == null ? '—' : `${a7}%`} label="7 días" />
           <Stat value={a30 == null ? '—' : `${a30}%`} label="30 días" />

@@ -4,6 +4,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Icon } from '../components/art';
 import { Btn, Card, Header, ScreenTitle, s } from '../components/ui';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import * as ImagePicker from 'expo-image-picker';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
+import { AiError, readMedBox } from '../lib/ai';
 import { COLORS, DAY_ORDER, DAYS, INTERVALS, LIQUID_QTY_UNITS, unitsFor, parseDose, MAX_INTERVAL_H, MIN_INTERVAL_H, dividesDay, dkey, doseDate, everyTxt, fmtDate, fmtTime, hhmmOf, intervalTimes, lastDose, newId, totalDoses } from '../lib/dose';
 import { useApp } from '../lib/store';
 import type { Med, MedType, ScheduleMode } from '../lib/types';
@@ -38,6 +41,41 @@ export default function Medicamento() {
   const [note, setNote] = useState(existing?.note ?? '');
   const [type, setType] = useState<MedType>(existing?.type ?? 'pill');
   const [qtyUnit, setQtyUnit] = useState(existing?.qtyUnit ?? 'ml');
+  const [stockTxt, setStockTxt] = useState(existing?.stock != null ? String(existing.stock) : '');
+  const [scan, setScan] = useState<{ busy: boolean; msg: string; ok?: boolean }>({ busy: false, msg: '' });
+
+  /** Foto de la caja → la IA rellena nombre, dosis, tipo y unidades. */
+  const scanBox = async () => {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) {
+      setScan({ busy: false, msg: 'Sin permiso para usar la cámara. Actívalo en los ajustes del teléfono.' });
+      return;
+    }
+    const r = await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.6, exif: false });
+    if (r.canceled || !r.assets?.[0]) return;
+    setScan({ busy: true, msg: 'Leyendo la caja…' });
+    try {
+      const a = r.assets[0];
+      const ref = await ImageManipulator.manipulate(a.uri).resize(a.width >= a.height ? { width: 1280 } : { height: 1280 }).renderAsync();
+      const out = await ref.saveAsync({ base64: true, compress: 0.75, format: SaveFormat.JPEG });
+      const box = await readMedBox(out.base64 ?? '');
+      if (!box.legible || !box.nombre) {
+        setScan({ busy: false, msg: 'No pude leer la caja. Prueba con más luz, de frente y que se vea bien el nombre.' });
+        return;
+      }
+      const t: MedType = box.tipo;
+      setType(t);
+      setName(box.nombre);
+      if (box.dosis_cantidad) setDoseAmount(box.dosis_cantidad);
+      setDoseUnit(unitsFor(t).includes(box.dosis_unidad) ? box.dosis_unidad : unitsFor(t)[0]);
+      if (t === 'liquid') setQtyUnit('ml');
+      if (box.unidades_caja > 0 && !stockTxt) setStockTxt(String(box.unidades_caja));
+      const parts = [box.nombre, box.dosis_cantidad ? `${box.dosis_cantidad} ${box.dosis_unidad}` : '', box.unidades_caja ? `${box.unidades_caja} ${t === 'liquid' ? 'ml' : 'unidades'}` : ''].filter(Boolean);
+      setScan({ busy: false, ok: true, msg: `Leído: ${parts.join(' · ')}. Revisa los datos y completa el horario.` });
+    } catch (e) {
+      setScan({ busy: false, msg: e instanceof AiError ? e.message : 'No se pudo leer la caja. Inténtalo de nuevo o escribe los datos.' });
+    }
+  };
   /** Al cambiar entre pastilla y líquido, la unidad de la dosis pasa a una que corresponda al tipo. */
   const changeType = (t: MedType) => {
     setType(t);
@@ -60,6 +98,9 @@ export default function Medicamento() {
     dose: doseAmount ? `${doseAmount} ${doseUnit}` : '—',
     qty: parseFloat(qty.replace(',', '.')) || 1,
     qtyUnit: type === 'liquid' ? qtyUnit : undefined,
+    // Vacío = no llevar la cuenta de las unidades disponibles.
+    stock: stockTxt.trim() === '' ? null : Math.max(0, parseFloat(stockTxt.replace(',', '.')) || 0),
+    stockAlertedOn: stockTxt.trim() !== '' && existing?.stock != null && parseFloat(stockTxt.replace(',', '.')) === existing.stock ? existing.stockAlertedOn : undefined,
     schedule: mode,
     everyHours: validEvery ? everyHours : 8,
     startDate,
@@ -96,6 +137,13 @@ export default function Medicamento() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={s.screen} keyboardShouldPersistTaps="handled">
           <ScreenTitle>Configuración de meds</ScreenTitle>
+          <Card style={{ backgroundColor: C.surface2 }}>
+            <Btn icon="camera" title={scan.busy ? 'Leyendo la caja…' : 'Escanear la caja'} loading={scan.busy} onPress={scanBox} />
+            <Text style={s.sub}>
+              {scan.msg || 'Saca una foto de la caja o el frasco y la IA rellenará el nombre, la dosis y cuántas unidades trae.'}
+            </Text>
+            {scan.ok === true && <Text style={{ color: C.ok, fontWeight: '700' }}>✓ Datos rellenados</Text>}
+          </Card>
           <Card>
             <Field label="Nombre">
               <TextInput style={st.input} value={name} onChangeText={setName} placeholder="Ej. Amoxicilina" autoCapitalize="sentences" />
@@ -136,6 +184,26 @@ export default function Medicamento() {
                   ))}
                 </View>
               )}
+            </Field>
+            <Field label={type === 'liquid' ? `¿Cuánto te queda? (${qtyUnit})` : '¿Cuántas pastillas te quedan?'}>
+              <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                <TextInput
+                  style={[st.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]}
+                  value={stockTxt}
+                  onChangeText={(t) => setStockTxt(t.replace(/[^0-9.,]/g, ''))}
+                  keyboardType="decimal-pad"
+                  placeholder="—"
+                  accessibilityLabel="Unidades disponibles"
+                />
+                <Text style={{ color: C.fg }}>{type === 'liquid' ? qtyUnit : 'pastillas'}</Text>
+              </View>
+              <View style={st.chips}>
+                {[10, 20, 30].map((n) => (
+                  <Chip key={n} on={false} label={`+${n}`} onPress={() => setStockTxt(String((parseFloat(stockTxt.replace(',', '.')) || 0) + n))} />
+                ))}
+                {!!stockTxt && <Chip on={false} label="No llevar la cuenta" onPress={() => setStockTxt('')} />}
+              </View>
+              <Text style={s.sub}>Opcional. Se descuentan con cada toma y te aviso cuando queden para menos de 4 días.</Text>
             </Field>
           </Card>
 

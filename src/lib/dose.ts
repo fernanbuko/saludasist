@@ -345,3 +345,44 @@ export function normalizeMed(m: Partial<Med> & { id: string; name: string }, cre
     durationDays: m.durationDays === undefined ? null : m.durationDays,
   } as Med;
 }
+
+/** Tomas por día de media (para calcular cuántos días duran las pastillas). */
+export function dosesPerDay(m: Med): number {
+  if (m.schedule === 'interval') return 24 / m.everyHours;
+  return (m.times.length * m.days.length) / 7;
+}
+
+/** Tomas que quedan del tratamiento desde ahora (null si es de por vida). */
+export function remainingDoses(m: Med, now = new Date()): number | null {
+  const total = totalDoses(m);
+  if (total == null) return null;
+  const last = lastDose(m);
+  if (!last || last < now) return 0;
+  const days = (last.getTime() - now.getTime()) / 86400e3;
+  return Math.min(total, Math.ceil(days * dosesPerDay(m)) + 1);
+}
+
+/** Días de antelación con los que se avisa de que hay que comprar más. */
+export const STOCK_ALERT_DAYS = 4;
+
+export interface StockInfo {
+  stock: number;
+  daysLeft: number; // días que alcanzan las unidades disponibles
+  low: boolean; // hay que comprar más
+  out: boolean; // ya no queda
+  unit: string; // "pastillas", "ml"…
+}
+
+/** Estado de las existencias de un medicamento, o null si no se lleva la cuenta. */
+export function stockInfo(m: Med): StockInfo | null {
+  if (m.stock == null || isFinished(m)) return null;
+  const perDay = dosesPerDay(m) * (m.qty || 1);
+  const daysLeft = perDay > 0 ? m.stock / perDay : Infinity;
+  const need = remainingDoses(m);
+  // Si las unidades alcanzan para lo que queda de tratamiento, no hace falta comprar más.
+  const enough = need != null && m.stock >= need * (m.qty || 1);
+  const unit = m.type === 'liquid' ? (m.qtyUnit ?? 'ml') : m.stock === 1 ? 'pastilla' : 'pastillas';
+  return { stock: m.stock, daysLeft, low: !enough && daysLeft <= STOCK_ALERT_DAYS, out: m.stock <= 0, unit };
+}
+
+export const fmtStock = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','));

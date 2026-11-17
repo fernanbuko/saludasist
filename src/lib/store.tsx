@@ -18,10 +18,10 @@ import {
   watchEvents,
   type Account,
 } from './cloud';
-import { dkey, findInstance, normalizeMed } from './dose';
+import { dkey, findInstance, fmtStock, normalizeMed, stockInfo } from './dose';
 import { eventText, notifyMissed, notifyNewEvents } from './family';
 import { auth } from './firebase';
-import { cancelDoseReminders, cancelFollowUp, rescheduleAll } from './notifications';
+import { cancelDoseReminders, cancelFollowUp, notifyFamily, rescheduleAll } from './notifications';
 import { clearLegacy, defaultDevice, loadCache, loadDevice, loadLegacy, saveCache, saveDevice, type DeviceState } from './storage';
 import type { AppState, EventType, LogEntry, Med, Member, PatientDoc } from './types';
 
@@ -53,6 +53,7 @@ interface Ctx {
   deleteMed: (id: string) => void;
   markDose: (key: string, status: LogEntry['status'], extra?: Partial<LogEntry>) => void;
   reportRejected: (key: string, reason: string) => void;
+  addStock: (medId: string, amount: number) => void;
   setPatientName: (name: string) => void;
   setVoice: (v: boolean) => void;
   alarmMode: boolean;
@@ -283,16 +284,49 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const p = patientRefState.current;
       if (!pid || !p) return;
       const entry: LogEntry = { status, at: Date.now(), ...extra };
-      setPatient({ ...p, log: { ...p.log, [key]: entry } });
+      // Descontar de las existencias la primera vez que esta toma cuenta como tomada.
+      const prev = p.log[key]?.status;
+      const counts = (st?: string) => st === 'taken' || st === 'proof';
+      let meds = p.meds;
+      let lowMsg = '';
+      const med = p.meds.find((m) => m.id === key.split('|')[1]);
+      if (med && med.stock != null && counts(status) && !counts(prev)) {
+        const today = dkey(new Date());
+        let updated: Med = { ...med, stock: Math.max(0, Math.round((med.stock - (med.qty || 1)) * 100) / 100) };
+        const info = stockInfo(updated);
+        if (info?.low && updated.stockAlertedOn !== today) {
+          lowMsg = info.out
+            ? `Se acabó ${med.name}. Hay que comprar más.`
+            : `Quedan ${fmtStock(info.stock)} ${info.unit} de ${med.name} (unos ${Math.max(1, Math.floor(info.daysLeft))} días). Hay que comprar más.`;
+          updated = { ...updated, stockAlertedOn: today };
+        }
+        meds = p.meds.map((m) => (m.id === med.id ? updated : m));
+        saveMeds(pid, meds).catch(() => {});
+      }
+      setPatient({ ...p, log: { ...p.log, [key]: entry }, meds });
       saveLogEntry(pid, key, entry).catch(() => {});
       const snooze = { ...devRef.current.snooze };
       delete snooze[key];
       commitDevice({ ...devRef.current, snooze });
       cancelFollowUp(key);
       logEvent(status, key, status === 'taken' ? (extra.verified ? `Verificada con foto por la IA. ${extra.aiNote ?? ''}`.trim() : 'Registrada sin foto.') : '');
+      if (lowMsg) {
+        notifyFamily('Hay que comprar más', lowMsg);
+        logEvent('lowstock', key, lowMsg);
+      }
     },
     [commitDevice, logEvent],
   );
+
+  /** Suma unidades a las existencias (p. ej. al comprar una caja nueva). */
+  const addStock = useCallback((medId: string, amount: number) => {
+    const pid = pidRef.current;
+    const p = patientRefState.current;
+    if (!pid || !p || !(amount > 0)) return;
+    const meds = p.meds.map((m) => (m.id === medId ? { ...m, stock: Math.round(((m.stock ?? 0) + amount) * 100) / 100, stockAlertedOn: undefined } : m));
+    setPatient({ ...p, meds });
+    saveMeds(pid, meds).catch(() => {});
+  }, []);
 
   const reportRejected = useCallback((key: string, reason: string) => logEvent('rejected', key, reason), [logEvent]);
 
@@ -372,6 +406,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     deleteMed,
     markDose,
     reportRejected,
+    addStock,
     setPatientName,
     setVoice,
     alarmMode: device.alarmMode !== false,

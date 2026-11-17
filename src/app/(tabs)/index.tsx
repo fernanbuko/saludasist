@@ -7,6 +7,7 @@ import { doseTxt, dkey, fmtTime, focusDose, instancesFor, statusOf, treatmentDay
 import { snoozeNotification } from '../../lib/notifications';
 import { useApp } from '../../lib/store';
 import { openUpdate, useUpdate } from '../../lib/updates';
+import { StockAlerts } from '../../components/StockAlerts';
 import { C } from '../../theme';
 
 export default function Hoy() {
@@ -127,6 +128,7 @@ export default function Hoy() {
     <View style={{ flex: 1 }}>
       <Header title="SaludAsist" />
       <ScrollView contentContainerStyle={s.screen}>
+        <StockAlerts />
         {newVersion && (
           <Card style={{ backgroundColor: C.okSoft, gap: 8 }}>
             <Text style={{ fontWeight: '800', fontSize: 16, color: C.fg }}>Hay una actualización: versión {newVersion.versionName}</Text>

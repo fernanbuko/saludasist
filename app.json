@@ -2,7 +2,7 @@
   "expo": {
     "name": "SaludAsist",
     "slug": "saludasist",
-    "version": "2.3.1",
+    "version": "2.4.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -11,7 +11,7 @@
     },
     "android": {
       "package": "com.saludasist.app",
-      "versionCode": 16,
+      "versionCode": 17,
       "adaptiveIcon": {
         "backgroundColor": "#3A6EA5",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -70,7 +70,8 @@
       ],
       "@react-native-community/datetimepicker",
       "@react-native-google-signin/google-signin",
-      "./plugins/withReleaseSigning"
+      "./plugins/withReleaseSigning",
+      "expo-sharing"
     ],
     "scheme": "saludasist",
     "experiments": {

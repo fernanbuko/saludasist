@@ -8,6 +8,10 @@ export interface Med {
   dose: string; // "500 mg"
   qty: number; // cantidad por toma
   qtyUnit?: string; // líquidos: 'ml', 'gotas' o 'cucharadas' (las pastillas se cuentan en pastillas)
+  /** Unidades disponibles (pastillas, o ml/gotas/cucharadas en líquidos). null o ausente = no se lleva la cuenta. */
+  stock?: number | null;
+  /** Último día (YYYY-MM-DD) en que se avisó de que quedan pocas, para avisar una vez al día como mucho. */
+  stockAlertedOn?: string;
   /** 'interval': cada `everyHours` horas desde `startTime`; 'fixed': horas concretas elegidas a mano. */
   schedule: ScheduleMode;
   everyHours: number;
@@ -68,7 +72,7 @@ export interface PatientDoc {
   joinCode?: string;
 }
 
-export type EventType = 'taken' | 'proof' | 'skipped' | 'rejected';
+export type EventType = 'taken' | 'proof' | 'skipped' | 'rejected' | 'lowstock';
 
 /** Documento patients/{patientId}/events/{id}: avisos para la familia. */
 export interface DoseEvent {
