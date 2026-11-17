@@ -19,7 +19,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { dkey } from './dose';
-import type { DoseEvent, LogEntry, Med, PatientDoc } from './types';
+import type { DoseEvent, LogEntry, Med, PatientDoc, PatientProfile } from './types';
 
 /**
  * Estructura en Firestore:
@@ -102,6 +102,7 @@ export async function leavePatient(pid: string, uid: string) {
 }
 
 export const saveMeds = (pid: string, meds: Med[]) => updateDoc(patientRef(pid), { meds: JSON.parse(JSON.stringify(meds)) });
+export const saveProfile = (pid: string, profile: PatientProfile) => updateDoc(patientRef(pid), { profile: JSON.parse(JSON.stringify(profile)) });
 export const savePatientName = (pid: string, name: string) => updateDoc(patientRef(pid), { patientName: name });
 export const saveLogEntry = (pid: string, key: string, entry: LogEntry) =>
   updateDoc(patientRef(pid), new FieldPath('log', key), JSON.parse(JSON.stringify(entry)));

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Btn, Card, Header, ScreenTitle, s } from '../components/ui';
@@ -14,9 +14,11 @@ export default function Perfil() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const created = useRef(false);
 
   useEffect(() => {
-    if (status === 'ready') router.replace('/(tabs)');
+    // Tras crear su propia medicación, se piden los datos del paciente (se pueden dejar para más tarde).
+    if (status === 'ready') router.replace(created.current ? { pathname: '/datos-paciente', params: { primera: '1' } } : '/saludo');
     if (status === 'signedOut') router.replace('/bienvenida');
   }, [status]);
 
@@ -53,7 +55,10 @@ export default function Perfil() {
                 <>
                   <Text style={st.label}>¿Cómo te llamas?</Text>
                   <TextInput style={st.input} value={name} onChangeText={setName} placeholder="Ej. Carmen" autoCapitalize="words" />
-                  <Btn title={busy ? 'Creando…' : 'Empezar'} loading={busy} onPress={() => run(() => createPatient(name))} />
+                  <Btn title={busy ? 'Creando…' : 'Empezar'} loading={busy} onPress={() => {
+                      created.current = true;
+                      run(() => createPatient(name));
+                    }} />
                   <Btn kind="soft" small title="Volver" onPress={() => setMode('choose')} />
                 </>
               ) : (

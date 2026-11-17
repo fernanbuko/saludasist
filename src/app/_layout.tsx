@@ -103,6 +103,7 @@ export default function RootLayout() {
           <Stack.Screen name="validar" />
           <Stack.Screen name="medicamento" />
           <Stack.Screen name="informe" />
+          <Stack.Screen name="datos-paciente" />
         </Stack>
       </StoreProvider>
     </SafeAreaProvider>

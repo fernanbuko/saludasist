@@ -10,7 +10,7 @@ import { C } from '../../theme';
 const SUGGESTIONS = ['¿Qué me falta tomar hoy?', '¿Cómo voy esta semana?', '¿Se me olvidó alguna ayer?', '¿Qué hago si olvidé una pastilla?'];
 
 export default function Asistente() {
-  const { state } = useApp();
+  const { state, profile } = useApp();
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
@@ -24,7 +24,7 @@ export default function Asistente() {
     setInput('');
     setBusy(true);
     try {
-      const answer = await askAssistant(state, next);
+      const answer = await askAssistant(state, next, profile);
       setTurns([...next, { role: 'assistant', content: answer }]);
       if (state.settings.voice) Speech.speak(answer, { language: 'es-ES' });
     } catch (e) {

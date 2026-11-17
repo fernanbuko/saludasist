@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react';
 import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { File, Paths } from 'expo-file-system';
+import { router } from 'expo-router';
 import { Btn, Card, Header, ScreenTitle, s } from '../components/ui';
 import { fmtTime } from '../lib/dose';
-import { buildReport, reportHtml, reportText } from '../lib/report';
+import { buildReport, patientLines, reportFileName, reportHtml, reportText } from '../lib/report';
 import { useApp } from '../lib/store';
 import { C } from '../theme';
 
@@ -12,18 +14,25 @@ const PERIODS = [7, 14, 30];
 
 /** Informe para el médico: resumen del periodo y opciones para compartirlo como texto o PDF. */
 export default function Informe() {
-  const { state } = useApp();
+  const { state, profile } = useApp();
   const [days, setDays] = useState(30);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
-  const r = useMemo(() => buildReport(state, days), [state, days]);
+  const r = useMemo(() => buildReport(state, days, profile), [state, days, profile]);
 
   const sharePdf = async () => {
     setBusy(true);
     setMsg('');
     try {
       const { uri } = await Print.printToFileAsync({ html: reportHtml(r) });
-      await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Compartir informe' });
+      // Guardar el PDF con el nombre del paciente: Informe_Carmen_Lopez_2026-11-17.pdf
+      let shareUri = uri;
+      try {
+        const named = new File(Paths.cache, reportFileName(r));
+        await new File(uri).copy(named, { overwrite: true });
+        shareUri = named.uri;
+      } catch {}
+      await Sharing.shareAsync(shareUri, { mimeType: 'application/pdf', dialogTitle: 'Compartir informe' });
     } catch {
       setMsg('No se pudo crear el PDF. Puedes compartirlo como texto.');
     } finally {
@@ -45,7 +54,18 @@ export default function Informe() {
         </View>
 
         <Card>
-          <Text style={st.h}>{r.patient}</Text>
+          {patientLines(r).map(([k, v]) =>
+            k === 'Paciente' ? (
+              <Text key={k} style={st.h}>
+                {v}
+              </Text>
+            ) : (
+              <Text key={k} style={{ color: k === 'Alergias' ? C.bad : C.fg, fontWeight: k === 'Alergias' ? '700' : '400' }}>
+                {k}: {v}
+              </Text>
+            ),
+          )}
+          {!profile?.fullName && <Btn kind="soft" small title="Añadir datos del paciente" onPress={() => router.push('/datos-paciente')} />}
           <Text style={s.sub}>
             Del {new Date(r.from + 'T00:00').toLocaleDateString('es', { day: 'numeric', month: 'long' })} al{' '}
             {new Date(r.to + 'T00:00').toLocaleDateString('es', { day: 'numeric', month: 'long' })}

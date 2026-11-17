@@ -1,5 +1,5 @@
-import { dkey, doseTxt, fmtTime, freqTxt, instancesFor, parseKey, statusOf, timesTxt, unitTxt } from './dose';
-import type { AppState, DoseStatus, Med } from './types';
+import { ageFrom, dkey, doseTxt, fmtDateShort, fmtTime, freqTxt, instancesFor, parseKey, SEX_TXT, statusOf, timesTxt, unitTxt } from './dose';
+import type { AppState, DoseStatus, Med, PatientProfile } from './types';
 
 /**
  * Informe para el médico: resumen de un periodo con los medicamentos, el cumplimiento
@@ -25,6 +25,7 @@ export interface Incident {
 
 export interface Report {
   patient: string;
+  profile: PatientProfile | null;
   from: string;
   to: string;
   days: number;
@@ -42,7 +43,7 @@ export interface Report {
 const fmtDay = (k: string) => parseKey(k).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
 const fmtLong = (k: string) => parseKey(k).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' });
 
-export function buildReport(s: AppState, days: number, now = new Date()): Report {
+export function buildReport(s: AppState, days: number, profile: PatientProfile | null = null, now = new Date()): Report {
   const start = new Date(now);
   start.setDate(start.getDate() - (days - 1));
   let from = dkey(start);
@@ -81,7 +82,8 @@ export function buildReport(s: AppState, days: number, now = new Date()): Report
   const scheduled = tot('scheduled');
   const taken = tot('taken');
   return {
-    patient: s.settings.patientName || 'Paciente',
+    patient: profile?.fullName || s.settings.patientName || 'Paciente',
+    profile,
     from,
     to,
     days,
@@ -97,11 +99,36 @@ export function buildReport(s: AppState, days: number, now = new Date()): Report
   };
 }
 
+/** Líneas con los datos del paciente: [etiqueta, valor], solo las que tienen dato. */
+export function patientLines(r: Report): [string, string][] {
+  const p = r.profile;
+  const age = p ? ageFrom(p.birthDate) : null;
+  const out: [string, string][] = [['Paciente', r.patient]];
+  if (age != null) out.push(['Edad', `${age} años (nacimiento: ${fmtDateShort(p!.birthDate)})`]);
+  if (p?.sex) out.push(['Sexo', SEX_TXT[p.sex]]);
+  if (p?.allergies) out.push(['Alergias', p.allergies]);
+  if (p?.conditions) out.push(['Enfermedades o condiciones', p.conditions]);
+  if (p?.doctor) out.push(['Médico o centro', p.doctor]);
+  if (p?.emergencyName || p?.emergencyPhone) out.push(['Contacto de emergencia', [p.emergencyName, p.emergencyPhone].filter(Boolean).join(' · ')]);
+  return out;
+}
+
+/** Nombre del archivo PDF: Informe_Carmen_Lopez_2026-11-17.pdf */
+export function reportFileName(r: Report) {
+  const name = r.patient
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Za-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return `Informe_${name || 'Paciente'}_${r.to}.pdf`;
+}
+
 const pct = (a: number, b: number) => (b ? `${Math.round((a * 100) / b)}%` : '—');
 
 export function reportText(r: Report): string {
   const lines: string[] = [];
-  lines.push(`INFORME DE MEDICACIÓN — ${r.patient}`);
+  lines.push('INFORME DE MEDICACIÓN');
+  for (const [k, v] of patientLines(r)) lines.push(`${k}: ${v}`);
   lines.push(`Periodo: del ${fmtLong(r.from)} al ${fmtLong(r.to)}`);
   lines.push('');
   lines.push(`Cumplimiento: ${r.adherence == null ? 'sin datos' : `${r.adherence}%`} (${r.taken} de ${r.scheduled} tomas)`);
@@ -159,9 +186,16 @@ export function reportHtml(r: Report): string {
   .bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
   .bar div{width:100%;border-radius:2px}.bar span{font-size:8px;color:#5B6E85}
   .foot{margin-top:24px;color:#5B6E85;font-size:10px}
+  .patient{margin-top:12px;border:1px solid #D3E0EF;border-radius:8px}
+  .patient th{width:190px;background:#F3F7FC;color:#2B5687;font-size:11px}
+  .patient td{font-size:13px}
+  .allergy{color:#C94040;font-weight:bold}
   </style></head><body>
   <h1>Informe de medicación</h1>
-  <div><b>${esc(r.patient)}</b> · del ${esc(fmtLong(r.from))} al ${esc(fmtLong(r.to))}</div>
+  <div class="sub">Periodo: del ${esc(fmtLong(r.from))} al ${esc(fmtLong(r.to))}</div>
+  <table class="patient">${patientLines(r)
+    .map(([k, v]) => `<tr><th>${esc(k)}</th><td${k === 'Alergias' ? ' class="allergy"' : ''}>${esc(v)}</td></tr>`)
+    .join('')}</table>
   <div class="kpis">
     <div class="kpi"><b>${r.adherence == null ? '—' : `${r.adherence}%`}</b>Cumplimiento</div>
     <div class="kpi"><b>${r.taken}/${r.scheduled}</b>Tomas realizadas</div>

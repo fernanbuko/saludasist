@@ -3,12 +3,14 @@ import { Linking, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View }
 import { AvisosCheck } from '../../components/AvisosCheck';
 import { Btn, Card, Header, s } from '../../components/ui';
 import { INVITE_HOURS } from '../../lib/cloud';
+import { router } from 'expo-router';
+import { ageFrom, fmtDateShort, SEX_TXT } from '../../lib/dose';
 import { useApp } from '../../lib/store';
 import { checkForUpdate, installedVersionName, openUpdate, type UpdateInfo } from '../../lib/updates';
 import { C } from '../../theme';
 
 export default function Ajustes() {
-  const { state, account, role, members, ownerUid, setPatientName, setVoice, createInvite, removeMember, leave, signOut } = useApp();
+  const { state, account, role, members, ownerUid, profile, setPatientName, setVoice, createInvite, removeMember, leave, signOut } = useApp();
   const set = state.settings;
   const [name, setName] = useState(set.patientName);
   const [code, setCode] = useState<string | null>(null);
@@ -53,6 +55,29 @@ export default function Ajustes() {
           ) : (
             <Btn kind="soft" small title="Cerrar sesión" onPress={() => setConfirm('signout')} />
           )}
+        </Card>
+
+        <Card>
+          <Text style={st.h}>Datos del paciente</Text>
+          {profile?.fullName ? (
+            <>
+              <Text style={{ color: C.fg, fontSize: 16, fontWeight: '700' }}>{profile.fullName}</Text>
+              <Text style={s.sub}>
+                {[
+                  ageFrom(profile.birthDate) != null ? `${ageFrom(profile.birthDate)} años (${fmtDateShort(profile.birthDate)})` : '',
+                  SEX_TXT[profile.sex] ?? '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ') || 'Sin fecha de nacimiento'}
+              </Text>
+              {!!profile.allergies && <Text style={s.sub}>Alergias: {profile.allergies}</Text>}
+              {!!profile.conditions && <Text style={s.sub}>Condiciones: {profile.conditions}</Text>}
+              {!!profile.emergencyName && <Text style={s.sub}>Emergencia: {profile.emergencyName} {profile.emergencyPhone}</Text>}
+            </>
+          ) : (
+            <Text style={s.sub}>Nombre completo, edad, alergias y enfermedades. Aparecen en el informe para el médico.</Text>
+          )}
+          <Btn kind={profile?.fullName ? 'soft' : 'primary'} small title={profile?.fullName ? 'Editar datos' : 'Completar datos del paciente'} onPress={() => router.push('/datos-paciente')} />
         </Card>
 
         <Card>

@@ -13,6 +13,7 @@ import {
   removeMember as cloudRemoveMember,
   saveLogEntry,
   saveMeds,
+  saveProfile as cloudSaveProfile,
   savePatientName,
   userRef,
   watchEvents,
@@ -23,7 +24,7 @@ import { eventText, notifyMissed, notifyNewEvents } from './family';
 import { auth } from './firebase';
 import { cancelDoseReminders, cancelFollowUp, notifyFamily, rescheduleAll } from './notifications';
 import { clearLegacy, defaultDevice, loadCache, loadDevice, loadLegacy, saveCache, saveDevice, type DeviceState } from './storage';
-import type { AppState, EventType, LogEntry, Med, Member, PatientDoc } from './types';
+import type { AppState, EventType, LogEntry, Med, Member, PatientDoc, PatientProfile } from './types';
 
 /**
  * Estado de la cuenta:
@@ -56,6 +57,8 @@ interface Ctx {
   addStock: (medId: string, amount: number) => void;
   setPatientName: (name: string) => void;
   setVoice: (v: boolean) => void;
+  profile: PatientProfile | null;
+  saveProfile: (p: PatientProfile) => Promise<void>;
   alarmMode: boolean;
   setAlarmMode: (v: boolean) => void;
   createPatient: (name: string) => Promise<void>;
@@ -335,6 +338,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     if (pid && name.trim()) savePatientName(pid, name.trim()).catch(() => {});
   }, []);
 
+  const saveProfile = useCallback(async (prof: PatientProfile) => {
+    const pid = pidRef.current;
+    const p = patientRefState.current;
+    if (!pid || !p) return;
+    setPatient({ ...p, profile: prof });
+    await cloudSaveProfile(pid, prof);
+  }, []);
+
   const setVoice = useCallback((v: boolean) => commitDevice({ ...devRef.current, voice: v }), [commitDevice]);
 
   const setAlarmMode = useCallback(
@@ -409,6 +420,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     addStock,
     setPatientName,
     setVoice,
+    profile: patient?.profile ?? null,
+    saveProfile,
     alarmMode: device.alarmMode !== false,
     setAlarmMode,
     createPatient,

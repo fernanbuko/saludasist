@@ -386,3 +386,15 @@ export function stockInfo(m: Med): StockInfo | null {
 }
 
 export const fmtStock = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(1).replace('.', ','));
+
+/** Edad en años cumplidos a partir de la fecha de nacimiento (YYYY-MM-DD). */
+export function ageFrom(birthDate: string, now = new Date()): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) return null;
+  const [y, m, d] = birthDate.split('-').map(Number);
+  let age = now.getFullYear() - y;
+  if (now.getMonth() + 1 < m || (now.getMonth() + 1 === m && now.getDate() < d)) age--;
+  return age >= 0 && age < 130 ? age : null;
+}
+
+export const fmtDateShort = (k: string) => (/^\d{4}-\d{2}-\d{2}$/.test(k) ? k.split('-').reverse().join('/') : '');
+export const SEX_TXT: Record<string, string> = { F: 'Mujer', M: 'Hombre', O: 'Otro', '': '' };

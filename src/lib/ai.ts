@@ -1,8 +1,8 @@
 import './polyfills';
 import { GoogleAIBackend, Schema, getAI, getGenerativeModel, type Content } from 'firebase/ai';
-import { DAY_ORDER, DAYS, adherence, doseTxt, dkey, fmtTime, freqTxt, instancesFor, statusOf, STATUS_TXT, streak, timesTxt, unitTxt } from './dose';
+import { DAY_ORDER, DAYS, adherence, ageFrom, doseTxt, dkey, fmtTime, freqTxt, instancesFor, statusOf, STATUS_TXT, streak, timesTxt, unitTxt } from './dose';
 import { app } from './firebase';
-import type { AppState, DoseInstance } from './types';
+import type { AppState, DoseInstance, PatientProfile } from './types';
 
 /**
  * IA gratuita: Gemini a través de Firebase AI Logic (Gemini Developer API, plan sin costo).
@@ -104,11 +104,15 @@ export async function verifyPhoto(inst: DoseInstance, jpegBase64: string): Promi
 
 export type ChatTurn = { role: 'user' | 'assistant'; content: string };
 
-function patientContext(s: AppState) {
+function patientContext(s: AppState, profile?: PatientProfile | null) {
   const now = new Date();
   const lines: string[] = [];
   lines.push(`Fecha y hora actual: ${now.toLocaleString('es', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false })}`);
-  if (s.settings.patientName) lines.push(`Paciente: ${s.settings.patientName}`);
+  if (s.settings.patientName) lines.push(`Paciente: ${profile?.fullName || s.settings.patientName}`);
+  const age = profile ? ageFrom(profile.birthDate) : null;
+  if (age != null) lines.push(`Edad: ${age} años`);
+  if (profile?.allergies) lines.push(`Alergias: ${profile.allergies}`);
+  if (profile?.conditions) lines.push(`Enfermedades o condiciones: ${profile.conditions}`);
   lines.push('Medicamentos configurados:');
   if (!s.meds.length) lines.push('- (ninguno todavía)');
   for (const m of s.meds)
@@ -129,13 +133,13 @@ function patientContext(s: AppState) {
   return lines.join('\n');
 }
 
-export async function askAssistant(s: AppState, turns: ChatTurn[]): Promise<string> {
+export async function askAssistant(s: AppState, turns: ChatTurn[], profile?: PatientProfile | null): Promise<string> {
   const system = `Eres el asistente de SaludAsist, una app que ayuda a una persona a tomar su medicación a tiempo. Habla en español, con calidez, frases cortas y sin tecnicismos: quien te lee puede ser una persona mayor o un familiar que la cuida. Responde en 5 frases como máximo o una lista breve, sin formato markdown.
 
 Usa solo los datos del paciente que siguen para hablar de sus tomas. No inventes medicamentos ni dosis. No recomiendes cambiar, duplicar ni suspender una dosis: para eso remite al médico o farmacéutico. Si se olvidó una dosis, sugiere consultar el prospecto o al farmacéutico antes de tomarla tarde. Ante síntomas graves, indica llamar a emergencias o acudir al médico.
 
 Datos del paciente:
-${patientContext(s)}`;
+${patientContext(s, profile)}`;
   const history: Content[] = turns.slice(-12, -1).map((t) => ({ role: t.role === 'assistant' ? 'model' : 'user', parts: [{ type: 'text' as const, text: t.content }] }));
   const last = turns[turns.length - 1]?.content ?? '';
   return withModel(async (name) => {

@@ -60,6 +60,20 @@ export interface Member {
   joinedAt: number;
 }
 
+export type Sex = 'F' | 'M' | 'O' | '';
+
+/** Ficha del paciente: datos para el informe médico y para la familia. */
+export interface PatientProfile {
+  fullName: string;
+  birthDate: string; // YYYY-MM-DD ('' si no se indica)
+  sex: Sex;
+  allergies: string;
+  conditions: string;
+  doctor: string; // médico o centro de salud
+  emergencyName: string;
+  emergencyPhone: string;
+}
+
 /** Documento patients/{patientId} en Firestore: la medicación compartida de una persona. */
 export interface PatientDoc {
   ownerUid: string; // la persona que toma la medicación
@@ -70,6 +84,7 @@ export interface PatientDoc {
   meds: Med[];
   log: Record<string, LogEntry>;
   joinCode?: string;
+  profile?: PatientProfile;
 }
 
 export type EventType = 'taken' | 'proof' | 'skipped' | 'rejected' | 'lowstock';
