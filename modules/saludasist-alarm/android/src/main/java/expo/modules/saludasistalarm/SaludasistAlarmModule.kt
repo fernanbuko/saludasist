@@ -40,7 +40,11 @@ class SaludasistAlarmModule : Module() {
     Name("SaludasistAlarm")
 
     Function("schedule") { id: String, atMs: Double, title: String, detail: String, time: String, speak: Boolean ->
-      AlarmScheduler.schedule(ctx, id, atMs.toLong(), title, detail, time, speak)
+      AlarmScheduler.schedule(ctx, id, atMs.toLong(), title, detail, time, speak, quiet = true)
+    }
+
+    Function("logSummary") {
+      AlarmScheduler.logSummary(ctx)
     }
 
     Function("cancel") { id: String ->

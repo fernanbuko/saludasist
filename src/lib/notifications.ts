@@ -122,6 +122,9 @@ async function scheduleFullScreenAlarms(s: AppState) {
     }
     d.setDate(d.getDate() + 1);
   }
+  try {
+    Alarm.logSummary();
+  } catch {}
 }
 
 export async function rescheduleAll(s: AppState) {

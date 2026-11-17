@@ -17,6 +17,7 @@ export interface SaludasistAlarmModule {
   openXiaomiBattery(): void;
   /** Registro de las últimas acciones de la alarma (programada, recibida, sonando, errores). */
   diagnostics(): string;
+  logSummary(): void;
 }
 
 export default requireOptionalNativeModule<SaludasistAlarmModule>('SaludasistAlarm');

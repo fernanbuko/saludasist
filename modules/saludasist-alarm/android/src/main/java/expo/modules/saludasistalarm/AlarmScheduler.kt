@@ -14,6 +14,7 @@ import android.os.Build
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import org.json.JSONObject
 
 /**
  * Programa y muestra las alarmas de toma:
@@ -46,9 +47,25 @@ object AlarmScheduler {
     try {
       val line = SimpleDateFormat("dd/MM HH:mm:ss", Locale.US).format(Date()) + "  " + msg
       val old = prefs(ctx).getString("log", "") ?: ""
-      val lines = (listOf(line) + old.split("\n").filter { it.isNotBlank() }).take(25)
+      val lines = (listOf(line) + old.split("\n").filter { it.isNotBlank() }).take(40)
       prefs(ctx).edit().putString("log", lines.joinToString("\n")).commit()
     } catch (_: Throwable) {}
+  }
+
+  /** Resumen tras reprogramar: cuántas alarmas quedan y cuál es la próxima. */
+  fun logSummary(ctx: Context) {
+    val now = System.currentTimeMillis()
+    var next: Pair<Long, String>? = null
+    for (id in ids(ctx).toList()) {
+      val raw = prefs(ctx).getString("a:$id", null) ?: continue
+      try {
+        val j = JSONObject(raw)
+        val at = j.getLong("at")
+        if (at > now && (next == null || at < next.first)) next = at to j.optString("title")
+      } catch (_: Throwable) {}
+    }
+    val n = ids(ctx).size
+    log(ctx, "Programadas $n alarmas" + (next?.let { " · próxima: ${it.second} el ${hhmm(it.first)}" } ?: "") + if (canScheduleExact(ctx)) "" else " (sin permiso de alarma exacta)")
   }
 
   fun diagnostics(ctx: Context): String = prefs(ctx).getString("log", "") ?: ""
@@ -56,6 +73,36 @@ object AlarmScheduler {
   private fun hhmm(ms: Long) = SimpleDateFormat("dd/MM HH:mm", Locale.US).format(Date(ms))
   fun ids(ctx: Context): Set<String> = prefs(ctx).getStringSet("ids", emptySet()) ?: emptySet()
   private fun setIds(ctx: Context, ids: Set<String>) = prefs(ctx).edit().putStringSet("ids", HashSet(ids)).apply()
+
+  /** Datos de cada alarma pendiente, para volver a programarla si el teléfono se reinicia. */
+  private fun saveData(ctx: Context, id: String, atMs: Long, title: String, detail: String, time: String, speak: Boolean) {
+    val j = JSONObject().put("at", atMs).put("title", title).put("detail", detail).put("time", time).put("speak", speak)
+    prefs(ctx).edit().putString("a:$id", j.toString()).apply()
+  }
+  private fun dropData(ctx: Context, id: String) = prefs(ctx).edit().remove("a:$id").apply()
+
+  /**
+   * Tras reiniciar el teléfono, cambiar la hora o actualizar la app, Android borra las alarmas:
+   * se vuelven a programar desde lo guardado. Las que vencieron hace poco (teléfono apagado) suenan ya.
+   */
+  fun restoreAll(ctx: Context, reason: String) {
+    val now = System.currentTimeMillis()
+    var n = 0
+    for (id in ids(ctx).toList()) {
+      val raw = prefs(ctx).getString("a:$id", null) ?: continue
+      try {
+        val j = JSONObject(raw)
+        val at = j.getLong("at")
+        val title = j.optString("title"); val detail = j.optString("detail"); val time = j.optString("time"); val speak = j.optBoolean("speak", true)
+        when {
+          at > now -> { schedule(ctx, id, at, title, detail, time, speak, quiet = true); n++ }
+          now - at < 60 * 60 * 1000L -> showAlarm(ctx, id, title, detail, time, speak)
+          else -> { setIds(ctx, ids(ctx) - id); dropData(ctx, id) }
+        }
+      } catch (_: Throwable) {}
+    }
+    log(ctx, "Reprogramadas $n alarmas ($reason)")
+  }
 
   private fun fireIntent(ctx: Context, id: String, title: String, detail: String, time: String, speak: Boolean): PendingIntent {
     val i = Intent(ctx, AlarmReceiver::class.java).apply {
@@ -74,10 +121,10 @@ object AlarmScheduler {
     return ctx.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
   }
 
-  fun schedule(ctx: Context, id: String, atMs: Long, title: String, detail: String, time: String, speak: Boolean) {
+  fun schedule(ctx: Context, id: String, atMs: Long, title: String, detail: String, time: String, speak: Boolean, quiet: Boolean = false) {
     val am = ctx.getSystemService(AlarmManager::class.java)
     val fire = fireIntent(ctx, id, title, detail, time, speak)
-    log(ctx, "Programada: $title para ${hhmm(atMs)}" + if (canScheduleExact(ctx)) " (exacta)" else " (aproximada)")
+    if (!quiet) log(ctx, "Programada: $title para ${hhmm(atMs)}" + if (canScheduleExact(ctx)) " (exacta)" else " (aproximada)")
     if (canScheduleExact(ctx)) {
       val show = PendingIntent.getActivity(ctx, rc(id), alarmActivityIntent(ctx, id, title, detail, time, speak), PendingIntent.FLAG_UPDATE_CURRENT or immutable())
       am.setAlarmClock(AlarmManager.AlarmClockInfo(atMs, show), fire)
@@ -86,6 +133,7 @@ object AlarmScheduler {
     } else {
       am.set(AlarmManager.RTC_WAKEUP, atMs, fire)
     }
+    saveData(ctx, id, atMs, title, detail, time, speak)
     setIds(ctx, ids(ctx) + id)
   }
 
@@ -93,12 +141,14 @@ object AlarmScheduler {
     val am = ctx.getSystemService(AlarmManager::class.java)
     am.cancel(fireIntent(ctx, id, "", "", "", false))
     setIds(ctx, ids(ctx) - id)
+    dropData(ctx, id)
   }
 
   fun cancelAll(ctx: Context) {
     if (ids(ctx).isNotEmpty()) log(ctx, "Reprogramando: se quitan ${ids(ctx).size} alarmas anteriores")
-    for (id in ids(ctx)) {
+    for (id in ids(ctx).toList()) {
       ctx.getSystemService(AlarmManager::class.java).cancel(fireIntent(ctx, id, "", "", "", false))
+      dropData(ctx, id)
     }
     setIds(ctx, emptySet())
   }
@@ -140,6 +190,7 @@ object AlarmScheduler {
   /** Muestra la alarma: pantalla completa si el sistema lo permite; si no, notificación insistente. */
   fun showAlarm(ctx: Context, id: String, title: String, detail: String, time: String, speak: Boolean) {
     setIds(ctx, ids(ctx) - id)
+    dropData(ctx, id)
     try {
       showAlarmInner(ctx, id, title, detail, time, speak)
       log(ctx, "Sonando: $title")
