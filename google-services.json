@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "938152198413",
+    "project_id": "saludasist-c89d5",
+    "storage_bucket": "saludasist-c89d5.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:938152198413:android:351b3cc77e5906b4aa7044",
+        "android_client_info": {
+          "package_name": "com.saludasist.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "938152198413-d91aco10mh6eqlh6m4hilkjb5833ju8r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.saludasist.app",
+            "certificate_hash": "1386de9102dc46d8ff9c831be7635ade8f3ea9ae"
+          }
+        },
+        {
+          "client_id": "938152198413-lfnakvctou8btqquu9h9lfne0riipa7v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBpgci5iAKMuW5eAX5S04DIUmptEneIe6M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "938152198413-lfnakvctou8btqquu9h9lfne0riipa7v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
