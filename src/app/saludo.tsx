@@ -9,9 +9,6 @@ import { dkey, fmtTime, instancesFor, statusOf } from '../lib/dose';
 import { useApp } from '../lib/store';
 import { C } from '../theme';
 
-/** Tiempo que se muestra el saludo antes de pasar a "Hoy". */
-const AUTO_MS = 6000;
-
 const FRASES = [
   'Cuidarte también es tomar tus medicinas a tiempo.',
   'Un día a la vez. ¡Vas muy bien!',
@@ -28,7 +25,7 @@ function greeting(d = new Date()) {
   return 'Buenas noches';
 }
 
-/** Pantalla de bienvenida al abrir la app: saludo, fecha y resumen de las tomas de hoy. */
+/** Pantalla de bienvenida al abrir la app: saludo, fecha y resumen de las tomas de hoy. Se queda hasta pulsar «Continuar». */
 export default function Saludo() {
   const { state, role, account, ready } = useApp();
   const insets = useSafeAreaInsets();
@@ -46,9 +43,7 @@ export default function Saludo() {
       router.replace('/');
       return;
     }
-    const t = setTimeout(go, AUTO_MS);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // El saludo se queda hasta que se pulsa «Continuar».
   }, [ready]);
 
   const family = role === 'caregiver';
@@ -77,7 +72,7 @@ export default function Saludo() {
   const hablar = () => Speech.speak([`${titulo}.`, resumen, proxima, aviso].filter(Boolean).join(' '), { language: 'es-ES' });
 
   return (
-    <Pressable style={[st.root, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 28 }]} onPress={go} accessibilityLabel="Continuar">
+    <View style={[st.root, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 28 }]}>
       <View style={st.avatar}>
         <Avatar size={150} />
       </View>
@@ -100,7 +95,7 @@ export default function Saludo() {
       <View style={{ alignSelf: 'stretch' }}>
         <Btn kind="soft" title="Continuar" onPress={go} />
       </View>
-    </Pressable>
+    </View>
   );
 }
 
