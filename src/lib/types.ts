@@ -17,7 +17,9 @@ export interface Med {
   everyHours: number;
   startDate: string; // YYYY-MM-DD, primer día del tratamiento
   startTime: string; // HH:MM, primera toma (modo 'interval')
-  durationDays: number | null; // null = de por vida
+  durationDays: number | null; // null = de por vida (o por número de tomas)
+  /** Duración por número de tomas (p. ej. 9 tomas cada 12 h). Si está, manda sobre durationDays. */
+  durationDoses?: number | null;
   times: string[]; // "HH:MM" de cada toma diaria (calculadas en modo 'interval')
   days: number[]; // 0=domingo … 6=sábado (solo modo 'fixed'; en 'interval' son todos)
   note: string;

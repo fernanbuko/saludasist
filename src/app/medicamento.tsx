@@ -14,6 +14,8 @@ import { C } from '../theme';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const QUICK_DAYS = [3, 5, 7, 10, 14, 30];
+const QUICK_DOSES = [3, 5, 6, 9, 10, 14, 20];
+type DurMode = 'days' | 'doses' | 'life';
 
 
 export default function Medicamento() {
@@ -34,8 +36,12 @@ export default function Medicamento() {
   const [everyStr, setEveryStr] = useState(String(existing?.everyHours ?? 8));
   const [startTime, setStartTime] = useState(existing?.startTime ?? '08:00');
   const [startDate, setStartDate] = useState(existing?.startDate ?? today);
-  const [lifelong, setLifelong] = useState(existing ? existing.durationDays == null : false);
+  const [durMode, setDurMode] = useState<DurMode>(
+    !existing ? 'days' : existing.durationDoses ? 'doses' : existing.durationDays == null ? 'life' : 'days',
+  );
+  const lifelong = durMode === 'life';
   const [daysTxt, setDaysTxt] = useState(String(existing?.durationDays ?? 7));
+  const [dosesTxt, setDosesTxt] = useState(String(existing?.durationDoses ?? 9));
   const [times, setTimes] = useState<string[]>(existing?.schedule === 'fixed' ? existing.times : ['08:00']);
   const [days, setDays] = useState<number[]>(existing?.days ?? [0, 1, 2, 3, 4, 5, 6]);
   const [note, setNote] = useState(existing?.note ?? '');
@@ -87,8 +93,12 @@ export default function Medicamento() {
 
   const everyHours = parseInt(everyStr, 10);
   const validEvery = Number.isFinite(everyHours) && everyHours >= MIN_INTERVAL_H && everyHours <= MAX_INTERVAL_H;
-  const durationDays = lifelong ? null : parseInt(daysTxt, 10);
-  const validDuration = lifelong || (Number.isFinite(durationDays) && (durationDays as number) >= 1 && (durationDays as number) <= 3650);
+  const durationDays = durMode === 'days' ? parseInt(daysTxt, 10) : null;
+  const durationDoses = durMode === 'doses' ? parseInt(dosesTxt, 10) : null;
+  const validDuration =
+    durMode === 'life' ||
+    (durMode === 'days' && Number.isFinite(durationDays) && (durationDays as number) >= 1 && (durationDays as number) <= 3650) ||
+    (durMode === 'doses' && Number.isFinite(durationDoses) && (durationDoses as number) >= 1 && (durationDoses as number) <= 2000);
   const computedTimes = mode === 'interval' ? intervalTimes(startTime, validEvery ? everyHours : 8) : [...new Set(times)].sort();
 
   // Borrador con lo que hay en pantalla, para mostrar el resumen (nº de tomas y última toma).
@@ -106,6 +116,7 @@ export default function Medicamento() {
     startDate,
     startTime: mode === 'interval' ? startTime : computedTimes[0] ?? '08:00',
     durationDays: validDuration ? durationDays : null,
+    durationDoses: validDuration ? durationDoses : null,
     times: computedTimes,
     days: mode === 'interval' ? [0, 1, 2, 3, 4, 5, 6] : [...days].sort(),
     note: note.trim(),
@@ -121,7 +132,7 @@ export default function Medicamento() {
     if (!doseAmount) problems.push('escribe la dosis (por ejemplo 500 mg)');
     if (mode === 'fixed' && !days.length) problems.push('elige al menos un día');
     if (!(parseFloat(qty.replace(',', '.')) > 0)) problems.push('indica cuántas pastillas o ml');
-    if (!validDuration) problems.push('indica cuántos días (de 1 a 3650)');
+    if (!validDuration) problems.push(durMode === 'doses' ? 'indica cuántas tomas en total' : 'indica cuántos días (de 1 a 3650)');
     if (mode === 'interval' && !validEvery) problems.push(`indica cada cuántas horas (de ${MIN_INTERVAL_H} a ${MAX_INTERVAL_H})`);
     if (problems.length) {
       setError(`Para guardar, ${problems.join(' y ')}.`);
@@ -210,11 +221,26 @@ export default function Medicamento() {
           <Card>
             <Field label="¿Durante cuánto tiempo?">
               <View style={st.chips}>
-                <Chip on={!lifelong} label="Por días" onPress={() => setLifelong(false)} />
-                <Chip on={lifelong} label="De por vida" onPress={() => setLifelong(true)} />
+                <Chip on={durMode === 'days'} label="Por días" onPress={() => setDurMode('days')} />
+                <Chip on={durMode === 'doses'} label="Por número de tomas" onPress={() => setDurMode('doses')} />
+                <Chip on={durMode === 'life'} label="De por vida" onPress={() => setDurMode('life')} />
               </View>
             </Field>
-            {!lifelong && (
+            {durMode === 'doses' && (
+              <Field label="Número de tomas en total">
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <TextInput style={[st.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={dosesTxt} onChangeText={(t) => setDosesTxt(t.replace(/[^0-9]/g, ''))} keyboardType="number-pad" accessibilityLabel="Número de tomas" maxLength={4} />
+                  <Text style={{ color: C.fg, fontSize: 16 }}>tomas</Text>
+                </View>
+                <View style={st.chips}>
+                  {QUICK_DOSES.map((n) => (
+                    <Chip key={n} on={dosesTxt === String(n)} label={`${n}`} onPress={() => setDosesTxt(String(n))} />
+                  ))}
+                </View>
+                <Text style={s.sub}>Útil cuando el último día no se toman todas, p. ej. «cada 12 h, 9 tomas».</Text>
+              </Field>
+            )}
+            {durMode === 'days' && (
               <Field label="Número de días">
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <TextInput style={[st.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={daysTxt} onChangeText={(t) => setDaysTxt(t.replace(/[^0-9]/g, ''))} keyboardType="number-pad" accessibilityLabel="Número de días" maxLength={4} />
@@ -320,7 +346,7 @@ export default function Medicamento() {
                   {last ? `. La última: ${fmtDate(last)} a las ${fmtTime(`${pad(last.getHours())}:${pad(last.getMinutes())}`)}.` : '.'}
                 </Text>
               ) : (
-                <Text style={[s.sub, { color: C.bad }]}>Escribe cuántos días dura el tratamiento.</Text>
+                <Text style={[s.sub, { color: C.bad }]}>{durMode === 'doses' ? 'Escribe cuántas tomas son en total.' : 'Escribe cuántos días dura el tratamiento.'}</Text>
               )}
             </View>
           </Card>

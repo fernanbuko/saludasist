@@ -93,8 +93,40 @@ export const doseDate = (dateKey: string, time: string) => {
  * En modo "cada N horas" la ventana empieza a la hora de la primera toma, de modo que
  * "cada 8 h durante 7 días" da exactamente 21 tomas.
  */
+/** ¿La duración se indicó por número de tomas? */
+export const byDoses = (m: Med) => m.durationDoses != null && m.durationDoses > 0;
+
+/** Hora de la toma número N (1, 2, 3…) contando desde el principio del tratamiento. */
+function nthDoseDate(m: Med, n: number, from: Date): Date | null {
+  if (m.schedule === 'interval') {
+    const d = new Date(from);
+    d.setMinutes(d.getMinutes() + Math.round((n - 1) * m.everyHours * 60));
+    return d;
+  }
+  // Horas concretas: recorrer los días contando las tomas (sin pasar de ~10 años).
+  const times = [...m.times].sort((a, b) => tmin(a) - tmin(b));
+  if (!times.length || !m.days.length) return null;
+  const d = parseKey(m.startDate);
+  let count = 0;
+  for (let i = 0; i < 3660; i++) {
+    if (m.days.includes(d.getDay())) {
+      for (const t of times) {
+        if (++count === n) return doseDate(dkey(d), t);
+      }
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return null;
+}
+
 export function treatmentWindow(m: Med): { from: Date; to: Date | null } {
   const from = doseDate(m.startDate, m.schedule === 'interval' ? m.startTime : '00:00');
+  if (byDoses(m)) {
+    // La ventana termina justo después de la última toma: "9 tomas cada 12 h" acaba en la novena.
+    const last = nthDoseDate(m, m.durationDoses!, from);
+    if (!last) return { from, to: from };
+    return { from, to: new Date(last.getTime() + 60_000) };
+  }
   if (m.durationDays == null) return { from, to: null };
   const to = new Date(from);
   to.setDate(to.getDate() + m.durationDays);
@@ -116,6 +148,7 @@ const nthDose = (m: Med, k: number) => {
 
 /** Número de tomas totales de un tratamiento con fin (null si es de por vida). */
 export function totalDoses(m: Med): number | null {
+  if (byDoses(m)) return m.durationDoses!;
   if (m.durationDays == null) return null;
   if (m.schedule === 'interval') return Math.ceil((m.durationDays * 24) / m.everyHours);
   let n = 0;
@@ -154,6 +187,26 @@ export function treatmentDay(m: Med, dateKey: string, time: string): { day: numb
   return { day, of: m.durationDays };
 }
 
+/** Número de esta toma dentro del tratamiento (para "toma 3 de 9"), o null si no aplica. */
+export function doseNumber(m: Med, dateKey: string, time: string): { n: number; of: number } | null {
+  if (!byDoses(m)) return null;
+  const at = doseDate(dateKey, time).getTime();
+  const w = treatmentWindow(m);
+  if (at < w.from.getTime() || (w.to && at >= w.to.getTime())) return null;
+  if (m.schedule === 'interval') return { n: Math.round((at - w.from.getTime()) / (m.everyHours * 3600e3)) + 1, of: m.durationDoses! };
+  let n = 0;
+  const d = parseKey(m.startDate);
+  const times = [...m.times].sort((a, b) => tmin(a) - tmin(b));
+  for (let i = 0; i < 3660 && dkey(d) <= dateKey; i++) {
+    if (m.days.includes(d.getDay())) for (const t of times) {
+      n++;
+      if (dkey(d) === dateKey && t === time) return { n, of: m.durationDoses! };
+    }
+    d.setDate(d.getDate() + 1);
+  }
+  return null;
+}
+
 export const fmtDate = (d: Date) => d.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' });
 
 export const everyTxt = (h: number) => (h === 24 ? 'Una vez al día' : h === 48 ? 'Cada 2 días' : `Cada ${h} h`);
@@ -179,6 +232,11 @@ export function timesTxt(m: Med) {
 }
 
 export function durationTxt(m: Med) {
+  if (byDoses(m)) {
+    const last = lastDose(m);
+    if (last && last < new Date()) return `Terminado (${m.durationDoses} tomas)`;
+    return `${m.durationDoses} tomas${last ? `, hasta el ${last.toLocaleDateString('es', { day: 'numeric', month: 'short' })}` : ''}`;
+  }
   if (m.durationDays == null) return 'De por vida';
   const last = lastDose(m);
   const ended = last && last < new Date();

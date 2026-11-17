@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { Icon } from '../../components/art';
 import { Btn, Card, DoseRow, Header, ScreenTitle, Speak, s } from '../../components/ui';
-import { doseTxt, dkey, fmtTime, focusDose, instancesFor, statusOf, treatmentDay, unitTxt } from '../../lib/dose';
+import { doseNumber, doseTxt, dkey, fmtTime, focusDose, instancesFor, statusOf, treatmentDay, unitTxt } from '../../lib/dose';
 import { snoozeNotification } from '../../lib/notifications';
 import { useApp } from '../../lib/store';
 import { openUpdate, useUpdate } from '../../lib/updates';
@@ -86,11 +86,19 @@ export default function Hoy() {
               {fmtTime(f.time)}
             </Text>
             {(() => {
+              const dn = doseNumber(m, f.date, f.time);
               const td = treatmentDay(m, f.date, f.time);
-              return td ? (
+              const txt = dn
+                ? `toma ${dn.n} de ${dn.of}${dn.n === dn.of ? ' (la última)' : ''}`
+                : td
+                  ? td.of
+                    ? `día ${td.day} de ${td.of}${td.day === td.of ? ' (último día)' : ''}`
+                    : 'de por vida'
+                  : '';
+              return txt ? (
                 <Text style={s.fact}>
                   <Text style={s.factLabel}>TRATAMIENTO: </Text>
-                  {td.of ? `día ${td.day} de ${td.of}${td.day === td.of ? ' (último día)' : ''}` : 'de por vida'}
+                  {txt}
                 </Text>
               ) : null;
             })()}
