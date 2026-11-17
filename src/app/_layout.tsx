@@ -98,6 +98,7 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="bienvenida" />
           <Stack.Screen name="perfil" />
+          <Stack.Screen name="saludo" options={{ animation: 'fade' }} />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="validar" />
           <Stack.Screen name="medicamento" />

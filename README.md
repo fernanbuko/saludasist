@@ -2,7 +2,7 @@
 
 > **Versión 2.0.0:** inicio de sesión con Google, datos en la nube (Firebase), compartir con la familia mediante código, IA gratuita (Gemini) y aviso de actualización dentro de la app. Ver «Firebase» más abajo.
 
-App Android para recordar la medicación de un familiar y comprobar que la ha tomado. La persona fotografía el blíster o la caja vacía y la IA (Claude, de Anthropic) verifica la foto. El cuidador recibe un aviso en su móvil cuando se confirma una toma o cuando una dosis se queda sin tomar.
+App Android para recordar la medicación de un familiar y comprobar que la ha tomado. La persona fotografía el blíster o la caja vacía y la IA (Gemini, de Google) verifica la foto. El familiar recibe un aviso de SaludAsist en su móvil cuando se confirma una toma o cuando una dosis se queda sin tomar.
 
 ## Qué hace
 
@@ -29,26 +29,14 @@ App Android para recordar la medicación de un familiar y comprobar que la ha to
 - Si 30 minutos después la dosis sigue sin registrarse, llega un segundo aviso: «¿Ya tomaste…?».
 - Si la app está abierta, el recordatorio también se lee en voz alta (se puede desactivar en Ajustes).
 
-### Avisos al cuidador (tu móvil)
-Usan [ntfy](https://ntfy.sh), un servicio de notificaciones gratuito que no pide crear cuenta:
-1. Instala **ntfy** desde Google Play en tu móvil.
-2. En el móvil de tu familiar, abre SaludAsist → **Ajustes** → **Avisos para el familiar cuidador**, y activa el interruptor.
-3. En ntfy, pulsa **+** y suscríbete al canal que aparece en Ajustes. Puedes usar **Compartir canal** para enviártelo por WhatsApp.
-4. Pulsa **Enviar aviso de prueba** para comprobar que llega.
+### Avisos al familiar
+Desde la versión 2.0.0, los avisos llegan como **notificaciones de la propia SaludAsist** (ya no se usa ntfy):
+1. La persona que toma la medicación crea un código en **Ajustes → Compartir con un familiar** y lo envía.
+2. El familiar instala SaludAsist, entra con su cuenta de Google, elige «Soy familiar y tengo un código» y lo escribe.
+3. Recibirá avisos de tomas confirmadas, fotos no verificadas y dosis con más de 1 hora sin registrar. Con la app cerrada, Android revisa cada 15-30 minutos.
 
-Recibirás estos avisos:
-- ✅ Toma confirmada (con foto verificada o sin foto).
-- ⏳ La toma se marcó con la foto pendiente.
-- 🔍 La IA no pudo confirmar la foto.
-- ⚠️ **Urgente**: una dosis lleva más de 1 hora sin registrarse.
-
-El aviso de dosis olvidada lo envía el teléfono de tu familiar al abrir la app o mediante una revisión periódica en segundo plano. Android decide cuándo hacer esa revisión, normalmente cada 15 a 30 minutos, así que el aviso puede retrasarse un rato si el teléfono está ahorrando batería.
-
-### Clave de la IA
-1. Crea una cuenta en <https://console.anthropic.com>, añade saldo y genera una clave en **API Keys**.
-2. En SaludAsist → **Ajustes** → **Verificación por foto con IA**, pega la clave y pulsa **Guardar clave**. La app la comprueba y la guarda cifrada en el teléfono.
-
-Cada verificación cuesta unos céntimos de dólar. Sin clave, la app sigue funcionando y las tomas se registran sin foto.
+### Inteligencia artificial
+La verificación de fotos y el asistente usan **Gemini** (Firebase AI Logic, plan gratuito); no hace falta ninguna clave. App Check está en modo «supervisión»: Firebase lo volverá a aplicar el 21 de enero de 2027, y antes hay que publicar la app en Google Play (Play Integrity) o usar tokens de depuración.
 
 ## Instalar el APK en el móvil de tu familiar
 1. Copia `SaludAsist.apk` al móvil (por cable, Drive o WhatsApp).
@@ -76,8 +64,9 @@ Diagnóstico incluido: si la app se cierra por un error, al volver a abrirla arr
 |---|---|
 | `src/lib/dose.ts` | Cálculo de dosis, estados, cumplimiento y racha |
 | `src/lib/notifications.ts` | Programación de recordatorios y acciones |
-| `src/lib/caregiver.ts` | Avisos al cuidador vía ntfy |
-| `src/lib/ai.ts` | Verificación de fotos y asistente (Claude) |
+| `src/lib/family.ts` | Avisos al familiar (notificaciones de la app) |
+| `src/lib/cloud.ts` | Datos en Firestore: perfil, medicación, invitaciones y eventos |
+| `src/lib/ai.ts` | Verificación de fotos y asistente (Gemini) |
 | `src/lib/background.ts` | Revisión periódica en segundo plano |
 | `src/lib/store.tsx` | Estado de la app, guardado en el teléfono |
 

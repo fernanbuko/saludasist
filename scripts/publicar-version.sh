@@ -23,4 +23,5 @@ git -c user.name="SaludAsist" -c user.email="noreply@saludasist.app" commit -q -
 git push -q --force origin HEAD:refs/heads/descargas
 cd - >/dev/null
 git -C "$REPO_DIR" worktree remove --force "$WORK"
+git -C "$REPO_DIR" branch -D descargas-nueva >/dev/null 2>&1 || true
 echo "Publicada SaludAsist $NAME (versionCode $CODE) en la rama descargas"
