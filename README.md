@@ -2,7 +2,7 @@
 
 > **Versión 2.0.0:** inicio de sesión con Google, datos en la nube (Firebase), compartir con la familia mediante código, IA gratuita (Gemini) y aviso de actualización dentro de la app. Ver «Firebase» más abajo.
 
-App Android para recordar la medicación de un familiar y comprobar que la ha tomado. La persona fotografía el blíster o la caja vacía y la IA (Claude, de Anthropic) verifica la foto. El cuidador recibe un aviso en su móvil cuando se confirma una toma o cuando una dosis se queda sin tomar.
+App Android para recordar la medicación de un familiar y comprobar que la ha tomado. La persona fotografía el blíster o la caja vacía y la IA (Gemini, de Google) verifica la foto. El familiar recibe un aviso de SaludAsist en su móvil cuando se confirma una toma o cuando una dosis se queda sin tomar.
 
 ## Qué hace
 
