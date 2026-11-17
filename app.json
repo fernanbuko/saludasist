@@ -1,0 +1,80 @@
+{
+  "expo": {
+    "name": "SaludAsist",
+    "slug": "saludasist",
+    "version": "2.2.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "package": "com.saludasist.app",
+      "versionCode": 14,
+      "adaptiveIcon": {
+        "backgroundColor": "#3A6EA5",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "android.permission.USE_EXACT_ALARM",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.CAMERA"
+      ],
+      "predictiveBackGestureEnabled": false,
+      "googleServicesFile": "./google-services.json"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-background-task",
+      [
+        "expo-notifications",
+        {
+          "color": "#3A6EA5",
+          "icon": "./assets/notification-icon.png"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "SaludAsist usa la cámara para fotografiar el blíster o la caja vacía y confirmar la toma.",
+          "photosPermission": "SaludAsist puede usar una foto de tu galería como comprobante de la toma."
+        }
+      ],
+      "./plugins/withCrashLogger",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/android-icon-foreground.png",
+          "imageWidth": 220,
+          "backgroundColor": "#3A6EA5"
+        }
+      ],
+      "./plugins/withCrashScreen",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "# WorkManager (expo-background-task) crea su base de datos Room por reflexión al arrancar:\n# sin estas reglas R8 elimina WorkDatabase_Impl.<init>() y la app se cierra al abrirse.\n-keep class * extends androidx.room.RoomDatabase { <init>(); }\n-keep class androidx.work.** { *; }\n-keep class * implements androidx.startup.Initializer { <init>(); }",
+            "enableMinifyInReleaseBuilds": false,
+            "enableShrinkResourcesInReleaseBuilds": false
+          }
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "@react-native-google-signin/google-signin",
+      "./plugins/withReleaseSigning"
+    ],
+    "scheme": "saludasist",
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

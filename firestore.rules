@@ -1,0 +1,69 @@
+rules_version = '2';
+
+// Reglas de seguridad de SaludAsist.
+// - Cada persona solo lee y escribe su propio perfil (users/{uid}).
+// - La medicación (patients/{id}) solo la ven quienes están en memberUids: la persona que la toma y los familiares que se unieron con un código.
+// - Solo la persona que toma la medicación puede quitar a un familiar; un familiar solo puede quitarse a sí mismo.
+// - Unirse requiere un código de invitación vigente (invites/{codigo}, válido 48 h).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function me() { return request.auth.uid; }
+
+    match /users/{uid} {
+      allow read, write: if signedIn() && me() == uid;
+    }
+
+    match /patients/{pid} {
+      function isMember() { return me() in resource.data.memberUids; }
+      function isOwner() { return resource.data.ownerUid == me(); }
+      function ownerUnchanged() { return request.resource.data.ownerUid == resource.data.ownerUid; }
+      function changes() { return request.resource.data.diff(resource.data).affectedKeys(); }
+      function invite() { return get(/databases/$(database)/documents/invites/$(request.resource.data.joinCode)).data; }
+
+      allow read: if signedIn() && isMember();
+
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == me()
+        && request.resource.data.memberUids == [me()];
+
+      allow update: if signedIn() && ownerUnchanged() && (
+        // La persona que toma la medicación puede cambiarlo todo (también quitar familiares).
+        (isMember() && isOwner())
+        // Un familiar puede registrar tomas y editar medicamentos, pero no cambiar quién tiene acceso…
+        || (isMember() && request.resource.data.memberUids == resource.data.memberUids
+            && !changes().hasAny(['members', 'joinCode']))
+        // …salvo quitarse a sí mismo.
+        || (isMember() && changes().hasOnly(['memberUids', 'members'])
+            && request.resource.data.memberUids.toSet() == resource.data.memberUids.toSet().difference([me()].toSet()))
+        // Unirse con un código de invitación vigente.
+        || (!isMember() && changes().hasOnly(['memberUids', 'members', 'joinCode'])
+            && request.resource.data.memberUids.toSet() == resource.data.memberUids.toSet().union([me()].toSet())
+            && request.resource.data.members[me()].role == 'caregiver'
+            && exists(/databases/$(database)/documents/invites/$(request.resource.data.joinCode))
+            && invite().patientId == pid
+            && invite().expiresAt > request.time.toMillis())
+      );
+
+      match /events/{eid} {
+        function member() { return me() in get(/databases/$(database)/documents/patients/$(pid)).data.memberUids; }
+        allow read: if signedIn() && member();
+        allow create: if signedIn() && member() && request.resource.data.by == me();
+      }
+    }
+
+    match /invites/{code} {
+      allow get: if signedIn();
+      allow create: if signedIn()
+        && request.resource.data.createdBy == me()
+        && me() in get(/databases/$(database)/documents/patients/$(request.resource.data.patientId)).data.memberUids;
+      allow delete: if signedIn() && resource.data.createdBy == me();
+    }
+
+    // Aviso de actualización: lo lee la app; se edita solo desde la consola de Firebase.
+    match /config/{doc} {
+      allow read: if signedIn();
+    }
+  }
+}

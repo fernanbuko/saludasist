@@ -1,0 +1,7 @@
+{
+  "name": "saludasist-alarm",
+  "version": "1.0.0",
+  "description": "Alarma a pantalla completa para los recordatorios de SaludAsist (Android)",
+  "main": "index.ts",
+  "private": true
+}
