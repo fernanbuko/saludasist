@@ -5,7 +5,7 @@ import type { ErrorBoundaryProps } from 'expo-router';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as Notifications from 'expo-notifications';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { registerBackground } from '../lib/background';
 import { ACTION_SNOOZE, configureHandler, keyFromNotification, setupChannelsAndActions, snoozeNotification } from '../lib/notifications';
 import { StoreProvider, useApp } from '../lib/store';
@@ -94,18 +94,27 @@ export default function RootLayout() {
       <StoreProvider>
         <StatusBar style="light" />
         <NotificationRouter />
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="bienvenida" />
-          <Stack.Screen name="perfil" />
-          <Stack.Screen name="saludo" options={{ animation: 'fade' }} />
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="validar" />
-          <Stack.Screen name="medicamento" />
-          <Stack.Screen name="informe" />
-          <Stack.Screen name="datos-paciente" />
-        </Stack>
+        <AppStack />
       </StoreProvider>
     </SafeAreaProvider>
+  );
+}
+
+/** Pantallas sin pestañas: dejan libre el espacio de la barra de navegación del sistema. */
+function AppStack() {
+  const bottom = useSafeAreaInsets().bottom;
+  const padded = { contentStyle: { backgroundColor: C.bg, paddingBottom: bottom } };
+  return (
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="bienvenida" options={padded} />
+      <Stack.Screen name="perfil" options={padded} />
+      <Stack.Screen name="saludo" options={{ animation: 'fade' }} />
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="validar" options={padded} />
+      <Stack.Screen name="medicamento" options={padded} />
+      <Stack.Screen name="informe" options={padded} />
+      <Stack.Screen name="datos-paciente" options={padded} />
+    </Stack>
   );
 }

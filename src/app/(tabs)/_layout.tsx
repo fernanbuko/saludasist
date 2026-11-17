@@ -1,5 +1,6 @@
 import { Redirect } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useApp } from '../../lib/store';
 import { Icon } from '../../components/art';
 import { C } from '../../theme';
@@ -9,6 +10,8 @@ const icon = (name: IconName) => ({ color }: { color: unknown }) => <Icon name={
 
 export default function TabsLayout() {
   const { status } = useApp();
+  // Respetar la barra de navegación del sistema (botones o gestos) en todos los teléfonos.
+  const bottom = useSafeAreaInsets().bottom;
   // Al cerrar sesión o perder el acceso, volver a la pantalla inicial.
   if (status === 'signedOut' || status === 'needsProfile') return <Redirect href="/" />;
   return (
@@ -18,7 +21,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: C.brand,
         tabBarInactiveTintColor: C.muted,
         tabBarLabelStyle: { fontSize: 11.5, fontWeight: '600' },
-        tabBarStyle: { backgroundColor: C.surface, borderTopColor: C.line, height: 64, paddingTop: 6 },
+        tabBarStyle: { backgroundColor: C.surface, borderTopColor: C.line, height: 64 + bottom, paddingTop: 6, paddingBottom: bottom + 6 },
         sceneStyle: { backgroundColor: C.bg },
       }}
     >
