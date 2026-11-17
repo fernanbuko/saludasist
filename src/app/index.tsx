@@ -8,7 +8,8 @@ export default function Index() {
   const { status } = useApp();
   if (status === 'signedOut') return <Redirect href="/bienvenida" />;
   if (status === 'needsProfile') return <Redirect href="/perfil" />;
-  if (status === 'ready') return <Redirect href="/(tabs)" />;
+  // Al abrir la app, primero el saludo; después pasa sola a "Hoy".
+  if (status === 'ready') return <Redirect href="/saludo" />;
   return (
     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: C.bg, gap: 12 }}>
       <ActivityIndicator color={C.brand} size="large" />
