@@ -8,6 +8,7 @@ import { snoozeNotification } from '../../lib/notifications';
 import { useApp } from '../../lib/store';
 import { openUpdate, useUpdate } from '../../lib/updates';
 import { StockAlerts } from '../../components/StockAlerts';
+import { AlarmHealth } from '../../components/AlarmHealth';
 import { C } from '../../theme';
 
 export default function Hoy() {
@@ -136,6 +137,7 @@ export default function Hoy() {
     <View style={{ flex: 1 }}>
       <Header title="SaludAsist" />
       <ScrollView contentContainerStyle={s.screen}>
+        <AlarmHealth />
         <StockAlerts />
         {newVersion && (
           <Card style={{ backgroundColor: C.okSoft, gap: 8 }}>

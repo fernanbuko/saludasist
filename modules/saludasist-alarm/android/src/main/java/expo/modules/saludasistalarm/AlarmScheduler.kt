@@ -52,11 +52,12 @@ object AlarmScheduler {
     } catch (_: Throwable) {}
   }
 
-  /** Resumen tras reprogramar: cuántas alarmas quedan y cuál es la próxima. */
-  fun logSummary(ctx: Context) {
+  /** La próxima alarma pendiente: (hora, nombre del medicamento). */
+  fun nextAlarm(ctx: Context): Pair<Long, String>? {
     val now = System.currentTimeMillis()
     var next: Pair<Long, String>? = null
     for (id in ids(ctx).toList()) {
+      if (id == "prueba") continue
       val raw = prefs(ctx).getString("a:$id", null) ?: continue
       try {
         val j = JSONObject(raw)
@@ -64,6 +65,37 @@ object AlarmScheduler {
         if (at > now && (next == null || at < next.first)) next = at to j.optString("title")
       } catch (_: Throwable) {}
     }
+    return next
+  }
+
+  private const val GRACE_MS = 3 * 60 * 1000L
+
+  /**
+   * Una alarma cuya hora ya pasó y que sigue pendiente nunca llegó a sonar: el sistema cerró la app
+   * o borró la alarma. Se guarda para avisar al abrir la app.
+   */
+  private fun recordMissed(ctx: Context, id: String, reason: String) {
+    val raw = prefs(ctx).getString("a:$id", null) ?: return
+    try {
+      val j = JSONObject(raw)
+      val at = j.getLong("at")
+      val now = System.currentTimeMillis()
+      if (at > now - GRACE_MS || at < now - 3 * 24 * 3600 * 1000L) return
+      val list = try { org.json.JSONArray(prefs(ctx).getString("missed", "[]")) } catch (_: Throwable) { org.json.JSONArray() }
+      list.put(JSONObject().put("id", id).put("title", j.optString("title")).put("at", at).put("reason", reason))
+      while (list.length() > 20) list.remove(0)
+      prefs(ctx).edit().putString("missed", list.toString()).commit()
+      log(ctx, "NO SONÓ: ${j.optString("title")} de las ${hhmm(at)} ($reason)")
+    } catch (_: Throwable) {}
+  }
+
+  fun missed(ctx: Context): String = prefs(ctx).getString("missed", "[]") ?: "[]"
+  fun clearMissed(ctx: Context) = prefs(ctx).edit().remove("missed").commit()
+
+  /** Resumen tras reprogramar: cuántas alarmas quedan y cuál es la próxima. */
+  fun logSummary(ctx: Context) {
+    val next = nextAlarm(ctx)
+    KeepAliveService.refresh(ctx)
     val n = ids(ctx).size
     log(ctx, "Programadas $n alarmas" + (next?.let { " · próxima: ${it.second} el ${hhmm(it.first)}" } ?: "") + if (canScheduleExact(ctx)) "" else " (sin permiso de alarma exacta)")
   }
@@ -97,11 +129,12 @@ object AlarmScheduler {
         when {
           at > now -> { schedule(ctx, id, at, title, detail, time, speak, quiet = true); n++ }
           now - at < 60 * 60 * 1000L -> showAlarm(ctx, id, title, detail, time, speak)
-          else -> { setIds(ctx, ids(ctx) - id); dropData(ctx, id) }
+          else -> { recordMissed(ctx, id, if (reason == "teléfono reiniciado") "el teléfono estaba apagado" else "el sistema la borró"); setIds(ctx, ids(ctx) - id); dropData(ctx, id) }
         }
       } catch (_: Throwable) {}
     }
     log(ctx, "Reprogramadas $n alarmas ($reason)")
+    KeepAliveService.refresh(ctx)
   }
 
   private fun fireIntent(ctx: Context, id: String, title: String, detail: String, time: String, speak: Boolean): PendingIntent {
@@ -148,6 +181,7 @@ object AlarmScheduler {
     if (ids(ctx).isNotEmpty()) log(ctx, "Reprogramando: se quitan ${ids(ctx).size} alarmas anteriores")
     for (id in ids(ctx).toList()) {
       ctx.getSystemService(AlarmManager::class.java).cancel(fireIntent(ctx, id, "", "", "", false))
+      recordMissed(ctx, id, "el teléfono cerró la app")
       dropData(ctx, id)
     }
     setIds(ctx, emptySet())
@@ -194,6 +228,7 @@ object AlarmScheduler {
     try {
       showAlarmInner(ctx, id, title, detail, time, speak)
       log(ctx, "Sonando: $title")
+      KeepAliveService.refresh(ctx)
     } catch (e: Throwable) {
       log(ctx, "ERROR al mostrar: ${e.javaClass.simpleName}: ${e.message}")
       // Respaldo: notificación sencilla con sonido de alarma, sin pantalla completa.

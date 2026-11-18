@@ -13,7 +13,7 @@ import { Btn, Card, s } from './ui';
  */
 export function AvisosCheck() {
   const { role, alarmMode, setAlarmMode } = useApp();
-  const [perm, setPerm] = useState({ notif: true, full: true, exact: true, count: 0 });
+  const [perm, setPerm] = useState({ notif: true, full: true, exact: true, battery: true, keep: true, autostart: false, count: 0 });
   const [msg, setMsg] = useState('');
   const [showLog, setShowLog] = useState(false);
   const [log, setLog] = useState('');
@@ -24,6 +24,9 @@ export function AvisosCheck() {
       notif: !!n?.granted,
       full: Alarm ? Alarm.canUseFullScreenIntent() : true,
       exact: Alarm ? Alarm.canScheduleExactAlarms() : true,
+      battery: Alarm ? Alarm.isIgnoringBatteryOptimizations() : true,
+      keep: Alarm ? Alarm.keepAliveOn() : false,
+      autostart: Alarm ? Alarm.hasAutostart() : false,
       count: Alarm ? Alarm.scheduledCount() : 0,
     });
     setLog(Alarm ? Alarm.diagnostics() : '');
@@ -37,9 +40,7 @@ export function AvisosCheck() {
   }, [refresh]);
 
   const isPatient = role === 'patient';
-  // Solo algunos fabricantes tienen la pantalla de «Inicio automático»; en el resto no se muestra el botón.
-  const hasAutostart = Platform.OS === 'android' && /xiaomi|redmi|poco/i.test(String((Platform.constants as { Manufacturer?: string; Brand?: string }).Manufacturer ?? '') + String((Platform.constants as { Brand?: string }).Brand ?? ''));
-  const ok = perm.notif && (!isPatient || !alarmMode || (perm.full && perm.exact));
+  const ok = perm.notif && (!isPatient || ((!alarmMode || (perm.full && perm.exact)) && perm.battery));
 
   return (
     <Card>
@@ -56,6 +57,24 @@ export function AvisosCheck() {
         </View>
       )}
 
+      {isPatient && Alarm && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, color: C.fg }}>Mantener activos los recordatorios</Text>
+            <Text style={s.sub}>Muestra una notificación fija con la próxima toma para que el teléfono no cierre SaludAsist.</Text>
+          </View>
+          <Switch
+            value={perm.keep}
+            onValueChange={(v) => {
+              Alarm!.setKeepAlive(v);
+              refresh();
+            }}
+            trackColor={{ true: C.brand, false: C.line }}
+            thumbColor="#fff"
+          />
+        </View>
+      )}
+
       <Text style={{ color: ok ? C.ok : C.warn, fontWeight: '700' }}>{ok ? '● Todo listo para recibir los avisos' : '● Falta algún permiso: revisa la lista'}</Text>
       <Check label="Notificaciones permitidas" ok={perm.notif} fix={() => requestPermission().then(refresh)} />
       {isPatient && alarmMode && (
@@ -65,15 +84,16 @@ export function AvisosCheck() {
           <Text style={s.sub}>Alarmas programadas en este teléfono: {perm.count}</Text>
         </>
       )}
+      {isPatient && Alarm && <Check label="Funcionar en segundo plano sin límite de batería" ok={perm.battery} fix={() => Alarm!.requestIgnoreBatteryOptimizations()} />}
 
       <View style={{ gap: 8, backgroundColor: C.surface2, borderRadius: 12, padding: 12 }}>
         <Text style={{ color: C.fg, fontWeight: '700' }}>Si los avisos no suenan con la app cerrada</Text>
-        <Text style={[s.sub, { color: C.fg }]}>Algunos teléfonos detienen las apps para ahorrar batería. En los ajustes de la app revisa:</Text>
+        <Text style={[s.sub, { color: C.fg }]}>Algunos teléfonos cierran las apps para ahorrar batería. Para evitarlo:</Text>
         <Text style={s.sub}>
-          • Inicio automático (si tu teléfono lo tiene): activado{'\n'}• Batería: sin restricciones{'\n'}• Mostrar en pantalla de bloqueo: activado{'\n'}• Mostrar ventanas emergentes en segundo plano: activado
+          {perm.autostart ? '• Activa SaludAsist en «Inicio automático».\n' : ''}• Batería de la app: sin restricciones.{'\n'}• En la lista de apps recientes, bloquea SaludAsist: mantén pulsada su tarjeta (o deslízala hacia abajo) y toca el candado.{'\n'}• Sal de la app con el botón de inicio, sin deslizarla para cerrarla.
         </Text>
-        {hasAutostart && <Btn small title="Inicio automático" onPress={() => Alarm?.openXiaomiAutostart()} />}
-        {hasAutostart && <Btn kind="soft" small title="Batería de la app" onPress={() => Alarm?.openXiaomiBattery()} />}
+        {perm.autostart && <Btn small title="Inicio automático" onPress={() => Alarm?.openAutostart() || Linking.openSettings()} />}
+        {Platform.OS === 'android' && Alarm && <Btn kind="soft" small title="Batería de la app" onPress={() => Alarm!.openBatterySettings()} />}
         <Btn kind="soft" small title="Abrir ajustes de la app" onPress={() => Linking.openSettings()} />
       </View>
 

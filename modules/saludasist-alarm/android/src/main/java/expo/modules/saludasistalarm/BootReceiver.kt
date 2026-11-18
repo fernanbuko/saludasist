@@ -17,6 +17,7 @@ class BootReceiver : BroadcastReceiver() {
     Thread {
       try {
         AlarmScheduler.restoreAll(ctx, reason)
+        KeepAliveService.start(ctx)
       } finally {
         pending.finish()
       }

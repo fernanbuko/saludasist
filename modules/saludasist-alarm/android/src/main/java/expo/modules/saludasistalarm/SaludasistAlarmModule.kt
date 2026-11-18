@@ -24,6 +24,18 @@ class SaludasistAlarmModule : Module() {
     }
   }
 
+  /** Abre la primera pantalla que exista; devuelve false si no existe ninguna. */
+  private fun tryOpen(intents: List<Intent>): Boolean {
+    for (i in intents) {
+      try {
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        ctx.startActivity(i)
+        return true
+      } catch (_: Throwable) {}
+    }
+    return false
+  }
+
   /** Abre la primera pantalla que exista; si ninguna, los ajustes de la app. */
   private fun openFirst(intents: List<Intent>) {
     for (i in intents) {
@@ -56,21 +68,62 @@ class SaludasistAlarmModule : Module() {
       AlarmScheduler.cancelAll(ctx)
     }
 
-    // Pantallas propias de Xiaomi (MIUI / HyperOS): sin "Inicio automático", el sistema borra las alarmas al cerrar la app.
-    Function("openXiaomiAutostart") {
-      val intents = listOf(
-        Intent().setClassName("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity"),
-        Intent("miui.intent.action.OP_AUTO_START").addCategory(Intent.CATEGORY_DEFAULT),
-      )
-      openFirst(intents)
+    Function("manufacturer") {
+      (Build.MANUFACTURER ?: "").lowercase() + " " + (Build.BRAND ?: "").lowercase()
     }
 
-    Function("openXiaomiBattery") {
-      val intents = listOf(
-        Intent().setClassName("com.miui.powerkeeper", "com.miui.powerkeeper.ui.HiddenAppsConfigActivity")
-          .putExtra("package_name", ctx.packageName).putExtra("package_label", "SaludAsist"),
-      )
-      openFirst(intents)
+    // Pantalla de «Inicio automático» / apps protegidas del fabricante. Devuelve false si este teléfono no tiene ninguna.
+    Function("openAutostart") {
+      tryOpen(Oem.autostartIntents())
+    }
+
+    Function("hasAutostart") {
+      Oem.autostartIntents().isNotEmpty()
+    }
+
+    // Ajustes de batería de la app (pantalla del fabricante si existe; si no, la información de la app).
+    Function("openBatterySettings") {
+      openFirst(Oem.batteryIntents(ctx.packageName))
+    }
+
+    Function("isIgnoringBatteryOptimizations") {
+      if (Build.VERSION.SDK_INT >= 23) ctx.getSystemService(android.os.PowerManager::class.java).isIgnoringBatteryOptimizations(ctx.packageName) else true
+    }
+
+    // Ventana del sistema: «¿Permitir que SaludAsist se ejecute siempre en segundo plano?»
+    Function("requestIgnoreBatteryOptimizations") {
+      if (Build.VERSION.SDK_INT >= 23) {
+        openFirst(
+          listOf(
+            Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:" + ctx.packageName)),
+            Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS),
+          ),
+        )
+      }
+    }
+
+    Function("setKeepAlive") { on: Boolean ->
+      KeepAliveService.setEnabled(ctx, on)
+    }
+
+    Function("keepAliveOn") {
+      KeepAliveService.enabled(ctx)
+    }
+
+    Function("startKeepAlive") {
+      KeepAliveService.refresh(ctx)
+    }
+
+    Function("stopKeepAlive") {
+      KeepAliveService.stop(ctx)
+    }
+
+    Function("missedAlarms") {
+      AlarmScheduler.missed(ctx)
+    }
+
+    Function("clearMissed") {
+      AlarmScheduler.clearMissed(ctx)
     }
 
     Function("diagnostics") {

@@ -129,6 +129,7 @@ async function scheduleFullScreenAlarms(s: AppState) {
 
 export async function rescheduleAll(s: AppState) {
   await Notifications.cancelAllScheduledNotificationsAsync();
+  keepAlive();
   if (await alarmModeOn()) {
     await scheduleFullScreenAlarms(s);
     await scheduleFollowUps(s);
@@ -260,10 +261,18 @@ export async function notifyFamily(title: string, body: string, data: Record<str
   } catch {}
 }
 
+/** Notificación fija «SaludAsist activo»: evita que el teléfono cierre la app y borre las alarmas. */
+function keepAlive() {
+  try {
+    Alarm?.startKeepAlive();
+  } catch {}
+}
+
 /** En el teléfono del familiar no deben sonar los recordatorios de toma: son para quien toma la medicación. */
 export async function cancelDoseReminders() {
   try {
     Alarm?.cancelAll();
+    Alarm?.stopKeepAlive();
   } catch {}
   try {
     await Notifications.cancelAllScheduledNotificationsAsync();
