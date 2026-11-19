@@ -59,10 +59,26 @@ export default function Saludo() {
   const missed = sts.filter((x) => x === 'missed').length;
   const next = ins.find((i, n) => sts[n] === 'due' || sts[n] === 'upcoming');
 
+  // Palabra según el tipo de medicamento: pastillas, tomas (líquidos) o dosis (si hay de los dos).
+  const types = new Set(ins.map((i) => i.med.type));
+  const [one, many] = types.size > 1 ? ['dosis', 'dosis'] : types.has('liquid') ? ['toma', 'tomas'] : ['pastilla', 'pastillas'];
+  const n = ins.length;
+  const pending = sts.filter((x) => x === 'due' || x === 'upcoming').length;
+  const cuantas = `${n} ${n === 1 ? one : many}`;
   let resumen: string;
-  if (!ins.length) resumen = family ? `${patient} no tiene tomas programadas hoy.` : 'Hoy no tienes tomas programadas.';
-  else if (done === ins.length) resumen = family ? `${patient} ya tomó todo lo de hoy.` : '¡Ya tomaste todo lo de hoy!';
-  else resumen = family ? `${patient} lleva ${done} de ${ins.length} tomas de hoy.` : `Hoy tienes ${ins.length} ${ins.length === 1 ? 'toma' : 'tomas'}. Llevas ${done}.`;
+  if (!n) resumen = family ? `${patient} no tiene tomas programadas hoy.` : 'Hoy no tienes tomas programadas.';
+  else if (done === n) resumen = family ? `${patient} ya tomó todo lo de hoy.` : '¡Ya tomaste todo lo de hoy!';
+  else if (family)
+    resumen = `Hoy a ${patient} le ${n === 1 ? 'toca' : 'tocan'} ${cuantas}.${done ? ` Ya tomó ${done}${pending ? `, le ${pending === 1 ? 'falta' : 'faltan'} ${pending}` : ''}.` : ''}`;
+  else resumen = `Hoy te ${n === 1 ? 'toca' : 'tocan'} ${cuantas}.${done ? ` Ya tomaste ${done}${pending ? `, te ${pending === 1 ? 'falta' : 'faltan'} ${pending}` : ''}.` : ''}`;
+
+  // Lista corta de lo de hoy: con muchas tomas, las próximas 4 (desde la primera pendiente).
+  const MAX = 4;
+  const firstOpen = Math.max(0, sts.findIndex((x) => x === 'due' || x === 'upcoming' || x === 'missed'));
+  const from = n <= MAX ? 0 : Math.min(firstOpen, n - MAX);
+  const lista = ins.slice(from, from + MAX).map((i, k) => ({ i, st: sts[from + k] }));
+  const resto = n - from - lista.length;
+  const ICON: Record<string, string> = { taken: '✅', proof: '✅', skipped: '⏭️', missed: '⚠️', due: '🔔', upcoming: '⏰' };
 
   const what = next?.med.type === 'liquid' ? 'medicina' : 'pastilla';
   const proxima = next ? `${family ? 'Su' : 'Tu'} próxima ${what}: ${next.med.name} a las ${fmtTime(next.time)}.` : '';
@@ -82,7 +98,23 @@ export default function Saludo() {
 
       <View style={st.card}>
         <Text style={st.summary}>{resumen}</Text>
-        {!!proxima && <Text style={st.next}>{proxima}</Text>}
+        {lista.length > 0 && (
+          <View style={st.list}>
+            {lista.map(({ i, st: s }) => {
+              const doneRow = s === 'taken' || s === 'proof' || s === 'skipped';
+              return (
+                <View key={i.key} style={st.row}>
+                  <Text style={st.rowIcon}>{ICON[s] ?? '⏰'}</Text>
+                  <Text style={[st.rowTime, doneRow && st.rowDone]}>{fmtTime(i.time)}</Text>
+                  <Text style={[st.rowName, doneRow && st.rowDone]} numberOfLines={1}>
+                    {i.med.name}
+                  </Text>
+                </View>
+              );
+            })}
+            {resto > 0 && <Text style={st.more}>y {resto} más</Text>}
+          </View>
+        )}
         {!!aviso && <Text style={st.warn}>{aviso}</Text>}
       </View>
 
@@ -107,7 +139,13 @@ const st = themed(() => ({
   date: { color: '#D7E7F7', fontSize: 17, textAlign: 'center' },
   card: { alignSelf: 'stretch', backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 18, padding: 18, gap: 8, marginTop: 14 },
   summary: { color: '#fff', fontSize: 19, fontWeight: '700', textAlign: 'center' },
-  next: { color: '#fff', fontSize: 17, textAlign: 'center' },
+  list: { gap: 6, marginTop: 4 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  rowIcon: { fontSize: 18, width: 26, textAlign: 'center' },
+  rowTime: { color: '#fff', fontSize: 18, fontWeight: '800', width: 58 },
+  rowName: { color: '#fff', fontSize: 18, flex: 1 },
+  rowDone: { opacity: 0.6 },
+  more: { color: '#D7E7F7', fontSize: 15, textAlign: 'center' },
   warn: { color: '#FFE2B8', fontSize: 16, fontWeight: '700', textAlign: 'center' },
   quote: { color: '#D7E7F7', fontSize: 15, fontStyle: 'italic', textAlign: 'center', marginTop: 10 },
   speak: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', marginBottom: 6 },
