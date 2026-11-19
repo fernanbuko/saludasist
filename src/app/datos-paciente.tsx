@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Icon } from '../components/art';
 import { Btn, Card, Header, ScreenTitle, s } from '../components/ui';
-import { ageFrom, dkey, fmtDateShort } from '../lib/dose';
+import { ageFrom, dkey, fmtDateShort, missingProfile } from '../lib/dose';
 import { useApp } from '../lib/store';
 import type { PatientProfile, Sex } from '../lib/types';
 import { C } from '../theme';
@@ -43,9 +43,11 @@ export default function DatosPaciente() {
 
   const done = () => router.replace(first ? '/saludo' : '/(tabs)/ajustes');
 
+  const NONE = 'Ninguna conocida';
   const save = async () => {
-    if (!fullName.trim()) {
-      setMsg('Escribe al menos el nombre y apellidos.');
+    const missing = missingProfile({ fullName, birthDate, sex, allergies, conditions, doctor, emergencyName, emergencyPhone });
+    if (missing.length) {
+      setMsg(`Falta completar: ${missing.join(', ')}.`);
       return;
     }
     setBusy(true);
@@ -61,7 +63,8 @@ export default function DatosPaciente() {
       emergencyPhone: emergencyPhone.trim(),
     };
     try {
-      await saveProfile(prof);
+      // Sin conexión, Firestore guarda el cambio y lo sube después: no dejar a la persona esperando.
+      await Promise.race([saveProfile(prof), new Promise((r) => setTimeout(r, 5000))]);
       // Si aún no había nombre para los saludos, usar el primer nombre.
       if (!state.settings.patientName) setPatientName(prof.fullName.split(' ')[0]);
       if (first) done();
@@ -80,20 +83,20 @@ export default function DatosPaciente() {
         <ScrollView contentContainerStyle={s.screen} keyboardShouldPersistTaps="handled">
           <ScreenTitle>Datos del paciente</ScreenTitle>
           <Text style={[s.sub, { textAlign: 'center', fontSize: 14 }]}>
-            Aparecen en el informe para el médico. {first ? 'Puedes completarlos ahora o más tarde en Ajustes.' : ''}
+            {first ? 'Antes de empezar, completa los datos del paciente. ' : ''}Aparecen en el informe para el médico. Los marcados con * son obligatorios.
           </Text>
           <Card>
-            <Field label="Nombre y apellidos">
+            <Field label="Nombre y apellidos *">
               <TextInput style={st.input} value={fullName} onChangeText={setFullName} placeholder="Ej. Carmen López García" autoCapitalize="words" />
             </Field>
-            <Field label="Fecha de nacimiento">
+            <Field label="Fecha de nacimiento *">
               <Pressable onPress={pickDate} style={st.date} accessibilityRole="button">
                 <Icon name="today" color={C.brand} size={22} />
                 <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: birthDate ? C.fg : C.muted }}>{birthDate ? fmtDateShort(birthDate) : 'Elegir fecha'}</Text>
                 {age != null && <Text style={{ color: C.brand, fontWeight: '700' }}>{age} años</Text>}
               </Pressable>
             </Field>
-            <Field label="Sexo (opcional)">
+            <Field label="Sexo *">
               <View style={st.chips}>
                 {(
                   [
@@ -110,10 +113,19 @@ export default function DatosPaciente() {
             </Field>
           </Card>
           <Card>
-            <Field label="Alergias">
-              <TextInput style={st.input} value={allergies} onChangeText={setAllergies} placeholder="Ej. Penicilina (o «Ninguna conocida»)" multiline />
+            <Field label="Alergias *">
+              <Pressable
+                onPress={() => setAllergies(allergies === NONE ? '' : NONE)}
+                style={[st.chip, allergies === NONE && st.chipOn, { alignSelf: 'flex-start' }]}
+                accessibilityState={{ selected: allergies === NONE }}
+              >
+                <Text style={[st.chipText, allergies === NONE && { color: '#fff' }]}>No tiene alergias conocidas</Text>
+              </Pressable>
+              {allergies !== NONE && (
+                <TextInput style={st.input} value={allergies} onChangeText={setAllergies} placeholder="Ej. Penicilina, ibuprofeno" multiline />
+              )}
             </Field>
-            <Field label="Enfermedades o condiciones">
+            <Field label="Enfermedades o condiciones (opcional)">
               <TextInput style={st.input} value={conditions} onChangeText={setConditions} placeholder="Ej. Hipertensión, diabetes tipo 2" multiline />
             </Field>
             <Field label="Médico o centro de salud (opcional)">
@@ -128,7 +140,6 @@ export default function DatosPaciente() {
           </Card>
           {!!msg && <Text style={{ color: C.bad, textAlign: 'center' }}>{msg}</Text>}
           <Btn title={busy ? 'Guardando…' : 'Guardar'} loading={busy} onPress={save} />
-          {first && <Btn kind="soft" title="Más tarde" onPress={done} />}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

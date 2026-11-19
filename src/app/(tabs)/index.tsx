@@ -9,6 +9,7 @@ import { useApp } from '../../lib/store';
 import { openUpdate, useUpdate } from '../../lib/updates';
 import { StockAlerts } from '../../components/StockAlerts';
 import { AlarmHealth } from '../../components/AlarmHealth';
+import { WaterToday } from '../../components/Water';
 import { C } from '../../theme';
 
 export default function Hoy() {
@@ -148,6 +149,7 @@ export default function Hoy() {
           </Card>
         )}
         {main}
+        <WaterToday />
         {ins.length > 0 && (
           <>
             <Text style={s.label}>Dosis de hoy</Text>

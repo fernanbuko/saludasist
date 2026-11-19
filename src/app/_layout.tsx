@@ -11,6 +11,7 @@ import { registerBackground } from '../lib/background';
 import { ACTION_SNOOZE, configureHandler, keyFromNotification, setupChannelsAndActions, snoozeNotification } from '../lib/notifications';
 import { StoreProvider, useApp } from '../lib/store';
 import { findInstance } from '../lib/dose';
+import { ACTION_WATER } from '../lib/water';
 import { C } from '../theme';
 import { clearLastCrash, onJsError, readLastCrash } from '../lib/crash';
 import { Btn } from '../components/ui';
@@ -42,7 +43,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 }
 
 function NotificationRouter() {
-  const { state, ready, update, role } = useApp();
+  const { state, ready, update, role, addWater } = useApp();
   const last = Notifications.useLastNotificationResponse();
 
   useEffect(() => {
@@ -53,6 +54,13 @@ function NotificationRouter() {
   // Al tocar una notificación (o uno de sus botones) se abre la dosis correspondiente.
   useEffect(() => {
     if (!ready || !last) return;
+    // Recordatorio de agua: el botón «Ya tomé un vaso» lo apunta en el contador de hoy.
+    if ((last.notification.request.content.data as Record<string, unknown> | undefined)?.type === 'agua') {
+      Notifications.clearLastNotificationResponse?.();
+      if (last.actionIdentifier === ACTION_WATER) addWater(1);
+      Notifications.dismissNotificationAsync(last.notification.request.identifier).catch(() => {});
+      return;
+    }
     const key = keyFromNotification(last.notification.request.content.data as Record<string, unknown>);
     Notifications.clearLastNotificationResponse?.();
     if (!key) return;

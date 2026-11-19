@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Linking, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { AvisosCheck } from '../../components/AvisosCheck';
+import { WaterSettingsCard } from '../../components/Water';
 import { Btn, Card, Header, s } from '../../components/ui';
 import { INVITE_HOURS } from '../../lib/cloud';
 import { router } from 'expo-router';
-import { ageFrom, fmtDateShort, SEX_TXT } from '../../lib/dose';
+import { ageFrom, fmtDateShort, missingProfile, SEX_TXT } from '../../lib/dose';
 import { useApp } from '../../lib/store';
 import { checkForUpdate, installedVersionName, openUpdate, type UpdateInfo } from '../../lib/updates';
 import { C } from '../../theme';
@@ -77,7 +78,10 @@ export default function Ajustes() {
           ) : (
             <Text style={s.sub}>Nombre completo, edad, alergias y enfermedades. Aparecen en el informe para el médico.</Text>
           )}
-          <Btn kind={profile?.fullName ? 'soft' : 'primary'} small title={profile?.fullName ? 'Editar datos' : 'Completar datos del paciente'} onPress={() => router.push('/datos-paciente')} />
+          {missingProfile(profile).length > 0 && (
+            <Text style={{ color: C.warn, fontWeight: '700' }}>Faltan datos: {missingProfile(profile).join(', ')}.</Text>
+          )}
+          <Btn kind={missingProfile(profile).length ? 'primary' : 'soft'} small title={missingProfile(profile).length ? 'Completar datos del paciente' : 'Editar datos'} onPress={() => router.push('/datos-paciente')} />
         </Card>
 
         <Card>
@@ -94,6 +98,7 @@ export default function Ajustes() {
         </Card>
 
         <AvisosCheck />
+        <WaterSettingsCard />
 
         {isOwner ? (
           <Card>

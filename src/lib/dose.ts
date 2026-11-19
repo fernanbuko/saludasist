@@ -1,4 +1,4 @@
-import type { AppState, DoseInstance, DoseStatus, Med, MedType } from './types';
+import type { AppState, DoseInstance, DoseStatus, Med, MedType, PatientProfile } from './types';
 
 export const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 export const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
@@ -456,3 +456,13 @@ export function ageFrom(birthDate: string, now = new Date()): number | null {
 
 export const fmtDateShort = (k: string) => (/^\d{4}-\d{2}-\d{2}$/.test(k) ? k.split('-').reverse().join('/') : '');
 export const SEX_TXT: Record<string, string> = { F: 'Mujer', M: 'Hombre', O: 'Otro', '': '' };
+
+/** Datos obligatorios del paciente: nombre, fecha de nacimiento, sexo y alergias (o «Ninguna conocida»). */
+export function missingProfile(p: PatientProfile | null | undefined): string[] {
+  const out: string[] = [];
+  if (!p?.fullName?.trim()) out.push('nombre y apellidos');
+  if (!p?.birthDate) out.push('fecha de nacimiento');
+  if (!p?.sex) out.push('sexo');
+  if (!p?.allergies?.trim()) out.push('alergias');
+  return out;
+}

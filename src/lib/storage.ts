@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { PatientDoc } from './types';
+import type { WaterSettings } from './water';
 
 /**
  * Datos guardados solo en este teléfono:
@@ -23,6 +24,8 @@ export interface DeviceState {
   alerted: Record<string, number>; // dosis olvidadas ya avisadas en este teléfono
   lastEventAt: number; // último aviso de la familia ya mostrado
   familyChecksFrom: number; // los avisos de dosis olvidadas empiezan a contar desde aquí
+  water?: WaterSettings; // recordatorio de agua (apagado si no existe)
+  waterLog?: Record<string, number>; // vasos de agua por día (YYYY-MM-DD)
 }
 
 export const defaultDevice = (): DeviceState => ({ voice: true, alarmMode: true, snooze: {}, alerted: {}, lastEventAt: Date.now(), familyChecksFrom: Date.now() });

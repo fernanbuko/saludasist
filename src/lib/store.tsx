@@ -20,6 +20,7 @@ import {
   type Account,
 } from './cloud';
 import { dkey, findInstance, fmtStock, normalizeMed, stockInfo } from './dose';
+import { waterOf, type WaterSettings } from './water';
 import { eventText, notifyMissed, notifyNewEvents } from './family';
 import { auth } from './firebase';
 import { cancelDoseReminders, cancelFollowUp, notifyFamily, rescheduleAll } from './notifications';
@@ -61,6 +62,10 @@ interface Ctx {
   saveProfile: (p: PatientProfile) => Promise<void>;
   alarmMode: boolean;
   setAlarmMode: (v: boolean) => void;
+  water: WaterSettings;
+  setWater: (w: WaterSettings) => void;
+  waterToday: number;
+  addWater: (delta: number) => void;
   createPatient: (name: string) => Promise<void>;
   joinWithCode: (code: string) => Promise<void>;
   createInvite: () => Promise<string>;
@@ -346,6 +351,29 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     await cloudSaveProfile(pid, prof);
   }, []);
 
+  const setWater = useCallback(
+    (w: WaterSettings) => {
+      commitDevice({ ...devRef.current, water: w });
+      // Volver a programar los avisos (incluye los de agua) con el nuevo horario.
+      setTimeout(() => {
+        if (patientRefState.current && account && patientRefState.current.ownerUid === account.uid) rescheduleAll(stateRef.current).catch(() => {});
+      }, 300);
+    },
+    [commitDevice, account],
+  );
+
+  const addWater = useCallback(
+    (delta: number) => {
+      const d = devRef.current;
+      const today = dkey(new Date());
+      const n = Math.max(0, (d.waterLog?.[today] ?? 0) + delta);
+      // Solo se guardan los últimos 14 días.
+      const keep = Object.fromEntries(Object.entries(d.waterLog ?? {}).filter(([k]) => k >= dkey(new Date(Date.now() - 14 * 86400e3))));
+      commitDevice({ ...d, waterLog: { ...keep, [today]: n } });
+    },
+    [commitDevice],
+  );
+
   const setVoice = useCallback((v: boolean) => commitDevice({ ...devRef.current, voice: v }), [commitDevice]);
 
   const setAlarmMode = useCallback(
@@ -424,6 +452,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     saveProfile,
     alarmMode: device.alarmMode !== false,
     setAlarmMode,
+    water: waterOf(device.water),
+    setWater,
+    waterToday: device.waterLog?.[dkey(new Date())] ?? 0,
+    addWater,
     createPatient,
     joinWithCode,
     createInvite,

@@ -5,6 +5,7 @@ import { loadDevice } from './storage';
 import Alarm from '../../modules/saludasist-alarm';
 import { dividesDay, doseTxt, dkey, doseDate, instancesFor, isFinished, medInstances, parseKey, tmin, treatmentWindow, unitTxt } from './dose';
 import type { AppState, Med } from './types';
+import { scheduleWater, setupWaterChannel } from './water';
 
 export const CHANNEL = 'dosis';
 export const CATEGORY = 'dosis';
@@ -19,7 +20,7 @@ export function configureHandler() {
       try {
         const dev = await loadDevice();
         const { title, body } = n.request.content;
-        if (dev.voice && title) speak(`${title}. ${body ?? ''}`);
+        if (dev.voice && title) speak(`${title.replace('💧', '').trim()}. ${body ?? ''}`);
       } catch {}
       return {
       shouldShowBanner: true,
@@ -52,6 +53,7 @@ export async function setupChannelsAndActions() {
       bypassDnd: true,
     });
   }
+  await setupWaterChannel().catch(() => {});
   await Notifications.setNotificationCategoryAsync(CATEGORY, [
     { identifier: ACTION_TAKEN, buttonTitle: 'Ya la tomé', options: { opensAppToForeground: true } },
     { identifier: ACTION_SNOOZE, buttonTitle: 'Posponer 10 min', options: { opensAppToForeground: true } },
@@ -133,6 +135,7 @@ export async function rescheduleAll(s: AppState) {
   if (await alarmModeOn()) {
     await scheduleFullScreenAlarms(s);
     await scheduleFollowUps(s);
+    await scheduleWater().catch(() => {});
     return;
   }
   Alarm?.cancelAll();
@@ -180,6 +183,7 @@ export async function rescheduleAll(s: AppState) {
     }
   }
   await scheduleFollowUps(s);
+  await scheduleWater().catch(() => {});
 }
 
 async function scheduleFollowUps(s: AppState) {
