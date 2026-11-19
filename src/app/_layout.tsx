@@ -1,6 +1,7 @@
 import '../lib/crash-init';
 import { useEffect, useState } from 'react';
-import { ScrollView, Share, Text, View } from 'react-native';
+import { Appearance, ScrollView, Share, Text, View } from 'react-native';
+import Alarm from '../../modules/saludasist-alarm';
 import type { ErrorBoundaryProps } from 'expo-router';
 import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -103,6 +104,21 @@ export default function RootLayout() {
 /** Pantallas sin pestañas: dejan libre el espacio de la barra de navegación del sistema. */
 function AppStack() {
   const bottom = useSafeAreaInsets().bottom;
+  // Con el teléfono en modo oscuro, Android pinta blancos los botones ◁ ○ □ sobre la barra clara: forzarlos oscuros.
+  useEffect(() => {
+    const dark = () => {
+      try {
+        Alarm?.darkNavButtons();
+      } catch {}
+    };
+    dark();
+    const t = setTimeout(dark, 600);
+    const sub = Appearance.addChangeListener(() => setTimeout(dark, 100));
+    return () => {
+      clearTimeout(t);
+      sub.remove();
+    };
+  }, []);
   const padded = { contentStyle: { backgroundColor: C.bg, paddingBottom: bottom } };
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>

@@ -34,6 +34,7 @@ object AlarmScheduler {
   const val EXTRA_TIME = "time"
   const val EXTRA_SPEAK = "speak"
   const val EXTRA_DO = "do"
+  const val EXTRA_AT = "at"
   const val SNOOZE_MIN = 10
   private const val RING_LIMIT_MS = 10 * 60 * 1000L
 
@@ -89,6 +90,19 @@ object AlarmScheduler {
     } catch (_: Throwable) {}
   }
 
+  /** La alarma llegó con retraso (el sistema retuvo la app): se registra para avisar al abrir la app. */
+  fun recordLate(ctx: Context, id: String, title: String, atMs: Long) {
+    val min = (System.currentTimeMillis() - atMs) / 60_000L
+    if (atMs <= 0L || min < 3 || id == "prueba") return
+    log(ctx, "LLEGÓ TARDE ($min min): $title de las ${hhmm(atMs)}")
+    try {
+      val list = try { org.json.JSONArray(prefs(ctx).getString("missed", "[]")) } catch (_: Throwable) { org.json.JSONArray() }
+      list.put(JSONObject().put("id", id).put("title", title).put("at", atMs).put("reason", "sonó $min min tarde"))
+      while (list.length() > 20) list.remove(0)
+      prefs(ctx).edit().putString("missed", list.toString()).commit()
+    } catch (_: Throwable) {}
+  }
+
   fun missed(ctx: Context): String = prefs(ctx).getString("missed", "[]") ?: "[]"
   fun clearMissed(ctx: Context) = prefs(ctx).edit().remove("missed").commit()
 
@@ -137,9 +151,10 @@ object AlarmScheduler {
     KeepAliveService.refresh(ctx)
   }
 
-  private fun fireIntent(ctx: Context, id: String, title: String, detail: String, time: String, speak: Boolean): PendingIntent {
+  private fun fireIntent(ctx: Context, id: String, title: String, detail: String, time: String, speak: Boolean, atMs: Long = 0L): PendingIntent {
     val i = Intent(ctx, AlarmReceiver::class.java).apply {
       action = ACTION_FIRE
+      putExtra(EXTRA_AT, atMs)
       putExtra(EXTRA_ID, id)
       putExtra(EXTRA_TITLE, title)
       putExtra(EXTRA_DETAIL, detail)
@@ -156,7 +171,7 @@ object AlarmScheduler {
 
   fun schedule(ctx: Context, id: String, atMs: Long, title: String, detail: String, time: String, speak: Boolean, quiet: Boolean = false) {
     val am = ctx.getSystemService(AlarmManager::class.java)
-    val fire = fireIntent(ctx, id, title, detail, time, speak)
+    val fire = fireIntent(ctx, id, title, detail, time, speak, atMs)
     if (!quiet) log(ctx, "Programada: $title para ${hhmm(atMs)}" + if (canScheduleExact(ctx)) " (exacta)" else " (aproximada)")
     if (canScheduleExact(ctx)) {
       val show = PendingIntent.getActivity(ctx, rc(id), alarmActivityIntent(ctx, id, title, detail, time, speak), PendingIntent.FLAG_UPDATE_CURRENT or immutable())

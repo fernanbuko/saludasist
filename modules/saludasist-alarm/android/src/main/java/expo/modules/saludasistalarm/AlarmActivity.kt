@@ -111,13 +111,40 @@ class AlarmActivity : Activity() {
     if (speak) {
       tts = TextToSpeech(this) { status ->
         if (status == TextToSpeech.SUCCESS) {
-          tts?.language = Locale("es", "ES")
+          spanish(tts!!)
           Handler(Looper.getMainLooper()).postDelayed({
             tts?.speak("Es hora de tu medicamento: $title. $detail", TextToSpeech.QUEUE_FLUSH, null, "alarma")
           }, 1500)
         }
       }
     }
+  }
+
+  /**
+   * Elige una voz en español instalada en el teléfono (primero Latinoamérica, luego España).
+   * Pedir siempre «es-ES» dejaba la alarma muda en teléfonos que solo tienen otra variante.
+   */
+  private fun spanish(t: TextToSpeech) {
+    val order = listOf("US", "MX", "419", "CO", "AR", "PE", "CL", "ES")
+    try {
+      val voices = t.voices?.filter {
+        it.locale.language == "es" &&
+          !it.features.contains(TextToSpeech.Engine.KEY_FEATURE_NOT_INSTALLED) &&
+          !it.isNetworkConnectionRequired
+      }.orEmpty()
+      val best = voices.minByOrNull { v -> order.indexOf(v.locale.country).let { if (it == -1) order.size - 1 else it } }
+      if (best != null) {
+        t.voice = best
+        return
+      }
+    } catch (_: Throwable) {}
+    for (loc in listOf(Locale("es", "US"), Locale("es", "MX"), Locale("es", "ES"), Locale("es"))) {
+      if (t.isLanguageAvailable(loc) >= TextToSpeech.LANG_AVAILABLE) {
+        t.language = loc
+        return
+      }
+    }
+    AlarmScheduler.log(this, "Sin voz en español en este teléfono")
   }
 
   override fun onDestroy() {

@@ -1,6 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import * as Speech from 'expo-speech';
+import { speak } from './voice';
 import { loadDevice } from './storage';
 import Alarm from '../../modules/saludasist-alarm';
 import { dividesDay, doseTxt, dkey, doseDate, instancesFor, isFinished, medInstances, parseKey, tmin, treatmentWindow, unitTxt } from './dose';
@@ -19,7 +19,7 @@ export function configureHandler() {
       try {
         const dev = await loadDevice();
         const { title, body } = n.request.content;
-        if (dev.voice && title) Speech.speak(`${title}. ${body ?? ''}`, { language: 'es-ES' });
+        if (dev.voice && title) speak(`${title}. ${body ?? ''}`);
       } catch {}
       return {
       shouldShowBanner: true,

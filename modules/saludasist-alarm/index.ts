@@ -33,6 +33,8 @@ export interface SaludasistAlarmModule {
   /** Registro de las últimas acciones de la alarma (programada, recibida, sonando, errores). */
   diagnostics(): string;
   logSummary(): void;
+  /** Botones de navegación del sistema en oscuro (la app tiene fondos claros). */
+  darkNavButtons(): void;
 }
 
 export default requireOptionalNativeModule<SaludasistAlarmModule>('SaludasistAlarm');

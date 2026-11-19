@@ -71,17 +71,18 @@ export function AlarmHealth() {
       {missed.length > 0 && (
         <Card style={{ backgroundColor: C.badSoft, gap: 8 }}>
           <Text style={{ fontWeight: '800', fontSize: 16, color: C.bad }}>
-            {missed.length === 1 ? 'Una alarma no sonó' : `${missed.length} alarmas no sonaron`}
+            {missed.length === 1 ? 'Una alarma no sonó a tiempo' : `${missed.length} alarmas no sonaron a tiempo`}
           </Text>
           {missed.slice(-3).map((m) => (
             <Text key={m.id + m.at} style={{ color: C.fg }}>
               • {m.title}: {when(m.at)}
+              {m.reason.startsWith('sonó') ? ` (${m.reason})` : ''}
             </Text>
           ))}
           <Text style={{ color: C.fg }}>
             {off
               ? 'El teléfono estaba apagado a esa hora.'
-              : 'El teléfono cerró SaludAsist y borró la alarma. Revisa la configuración para que no vuelva a pasar.'}
+              : 'El teléfono detuvo SaludAsist y la alarma no sonó a su hora. Revisa la configuración para que no vuelva a pasar.'}
           </Text>
           {!off && <Btn small title="Revisar configuración" onPress={() => router.navigate('/ajustes')} />}
           <Btn

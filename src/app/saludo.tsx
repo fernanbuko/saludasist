@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
+import { speak } from '../lib/voice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Icon } from '../components/art';
 import { Btn } from '../components/ui';
@@ -21,7 +22,7 @@ const FRASES = [
 function greeting(d = new Date()) {
   const h = d.getHours();
   if (h >= 5 && h < 12) return 'Buenos días';
-  if (h >= 12 && h < 20) return 'Buenas tardes';
+  if (h >= 12 && h < 19) return 'Buenas tardes';
   return 'Buenas noches';
 }
 
@@ -69,7 +70,7 @@ export default function Saludo() {
   const frase = FRASES[now.getDate() % FRASES.length];
   const titulo = `${greeting(now)}${myName ? `, ${myName}` : ''}`;
 
-  const hablar = () => Speech.speak([`${titulo}.`, resumen, proxima, aviso].filter(Boolean).join(' '), { language: 'es-ES' });
+  const hablar = () => speak([`${titulo}.`, resumen, proxima, aviso].filter(Boolean).join(' '));
 
   return (
     <View style={[st.root, { paddingTop: insets.top + 40, paddingBottom: insets.bottom + 28 }]}>

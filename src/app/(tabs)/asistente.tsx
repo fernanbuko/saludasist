@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from 'react-native';
-import * as Speech from 'expo-speech';
+import { speak } from '../../lib/voice';
 import { Avatar, Icon } from '../../components/art';
 import { Header, s } from '../../components/ui';
 import { AiError, askAssistant, type ChatTurn } from '../../lib/ai';
@@ -26,7 +26,7 @@ export default function Asistente() {
     try {
       const answer = await askAssistant(state, next, profile);
       setTurns([...next, { role: 'assistant', content: answer }]);
-      if (state.settings.voice) Speech.speak(answer, { language: 'es-ES' });
+      if (state.settings.voice) speak(answer);
     } catch (e) {
       setTurns([...next, { role: 'assistant', content: e instanceof AiError ? e.message : 'No pude responder ahora. Inténtalo otra vez.' }]);
     } finally {
@@ -77,7 +77,7 @@ function AiMsg({ text }: { text: string }) {
       <View style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden' }}>
         <Avatar size={36} />
       </View>
-      <Pressable style={st.ai} onLongPress={() => Speech.speak(text, { language: 'es-ES' })}>
+      <Pressable style={st.ai} onLongPress={() => speak(text)}>
         <Text style={{ color: C.fg, fontSize: 16, lineHeight: 22 }}>{text}</Text>
       </Pressable>
     </View>

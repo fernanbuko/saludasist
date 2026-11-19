@@ -15,7 +15,10 @@ class AlarmReceiver : BroadcastReceiver() {
     val speak = intent.getBooleanExtra(AlarmScheduler.EXTRA_SPEAK, true)
     AlarmScheduler.log(ctx, "Recibida la hora de la alarma: $title")
     when (intent.action) {
-      AlarmScheduler.ACTION_FIRE -> AlarmScheduler.showAlarm(ctx, id, title, detail, time, speak)
+      AlarmScheduler.ACTION_FIRE -> {
+        AlarmScheduler.recordLate(ctx, id, title, intent.getLongExtra(AlarmScheduler.EXTRA_AT, 0L))
+        AlarmScheduler.showAlarm(ctx, id, title, detail, time, speak)
+      }
       AlarmScheduler.ACTION_SNOOZE -> {
         AlarmScheduler.snooze(ctx, id, title, detail, time, speak)
         Toast.makeText(ctx, "Te lo recuerdo en ${AlarmScheduler.SNOOZE_MIN} minutos", Toast.LENGTH_LONG).show()

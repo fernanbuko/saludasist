@@ -48,8 +48,35 @@ class SaludasistAlarmModule : Module() {
     open(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + ctx.packageName)))
   }
 
+  /** Botones de la barra de navegación del sistema en oscuro: la app usa fondos claros. */
+  private fun darkNavButtons() {
+    val a = appContext.currentActivity ?: return
+    a.runOnUiThread {
+      try {
+        val w = a.window
+        if (Build.VERSION.SDK_INT >= 30) {
+          w.insetsController?.setSystemBarsAppearance(
+            android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+            android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+          )
+        } else if (Build.VERSION.SDK_INT >= 26) {
+          @Suppress("DEPRECATION")
+          w.decorView.systemUiVisibility = w.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+        }
+      } catch (_: Throwable) {}
+    }
+  }
+
   override fun definition() = ModuleDefinition {
     Name("SaludasistAlarm")
+
+    OnActivityEntersForeground {
+      darkNavButtons()
+    }
+
+    Function("darkNavButtons") {
+      darkNavButtons()
+    }
 
     Function("schedule") { id: String, atMs: Double, title: String, detail: String, time: String, speak: Boolean ->
       AlarmScheduler.schedule(ctx, id, atMs.toLong(), title, detail, time, speak, quiet = true)

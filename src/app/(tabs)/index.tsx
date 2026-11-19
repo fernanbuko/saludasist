@@ -1,6 +1,6 @@
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import * as Speech from 'expo-speech';
+import { speak } from '../../lib/voice';
 import { Icon } from '../../components/art';
 import { Btn, Card, DoseRow, Header, ScreenTitle, Speak, s } from '../../components/ui';
 import { doseNumber, doseTxt, dkey, fmtTime, focusDose, instancesFor, statusOf, treatmentDay, unitTxt } from '../../lib/dose';
@@ -64,7 +64,7 @@ export default function Hoy() {
             extra={
               <Pressable
                 accessibilityLabel="Escuchar el recordatorio"
-                onPress={() => Speech.speak(`${say} ${m.name}, ${doseTxt(m)}.`, { language: 'es-ES' })}
+                onPress={() => speak(`${say} ${m.name}, ${doseTxt(m)}.`)}
                 style={{ position: 'absolute', left: 50, bottom: -4, width: 34, height: 34, borderRadius: 17, backgroundColor: C.brand, borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' }}
               >
                 <Icon name="speaker" color="#fff" size={15} />
