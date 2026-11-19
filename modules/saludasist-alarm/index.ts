@@ -33,6 +33,8 @@ export interface SaludasistAlarmModule {
   /** Registro de las últimas acciones de la alarma (programada, recibida, sonando, errores). */
   diagnostics(): string;
   logSummary(): void;
+  /** Nombre de la mejor voz en español instalada ("" si no hay ninguna). */
+  spanishVoice(): Promise<string>;
   /** Botones de navegación del sistema en oscuro (la app tiene fondos claros). */
   darkNavButtons(): void;
   /** true: botones oscuros (app en modo claro); false: botones claros (modo oscuro). */

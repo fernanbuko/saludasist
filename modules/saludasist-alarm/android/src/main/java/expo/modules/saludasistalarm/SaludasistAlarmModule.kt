@@ -154,6 +154,30 @@ class SaludasistAlarmModule : Module() {
       KeepAliveService.stop(ctx)
     }
 
+    // Nombre de la mejor voz en español instalada ("" si el teléfono no tiene ninguna).
+    AsyncFunction("spanishVoice") { promise: expo.modules.kotlin.Promise ->
+      var tts: android.speech.tts.TextToSpeech? = null
+      var done = false
+      val finish = { result: String? ->
+        if (!done) {
+          done = true
+          try { tts?.shutdown() } catch (_: Throwable) {}
+          if (result == null) promise.reject("TTS", "No se pudo iniciar la voz", null) else promise.resolve(result)
+        }
+      }
+      android.os.Handler(android.os.Looper.getMainLooper()).post {
+        try {
+          tts = android.speech.tts.TextToSpeech(ctx) { status ->
+            if (status != android.speech.tts.TextToSpeech.SUCCESS) finish(null)
+            else finish(SpanishVoice.best(tts!!)?.name ?: "")
+          }
+          android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ finish(null) }, 6000)
+        } catch (_: Throwable) {
+          finish(null)
+        }
+      }
+    }
+
     Function("missedAlarms") {
       AlarmScheduler.missed(ctx)
     }

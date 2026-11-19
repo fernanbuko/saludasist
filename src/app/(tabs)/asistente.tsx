@@ -49,7 +49,7 @@ export default function Asistente() {
               <AiMsg key={i} text={t.content} />
             ),
           )}
-          {busy && <AiMsg text="Pensando…" />}
+          {busy && <AiMsg text="Pensando…" listen={false} />}
           {!turns.length && (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {SUGGESTIONS.map((q) => (
@@ -71,7 +71,7 @@ export default function Asistente() {
   );
 }
 
-function AiMsg({ text }: { text: string }) {
+function AiMsg({ text, listen = true }: { text: string; listen?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, maxWidth: '88%' }}>
       <View style={{ width: 36, height: 36, borderRadius: 18, overflow: 'hidden' }}>
@@ -79,6 +79,12 @@ function AiMsg({ text }: { text: string }) {
       </View>
       <Pressable style={st.ai} onLongPress={() => speak(text)}>
         <Text style={{ color: C.fg, fontSize: 16, lineHeight: 22 }}>{text}</Text>
+        {listen && (
+          <Pressable onPress={() => speak(text)} accessibilityLabel="Escuchar esta respuesta" style={st.listen} hitSlop={8}>
+            <Icon name="speaker" color={C.brand} size={18} />
+            <Text style={{ color: C.brand, fontWeight: '700' }}>Escuchar</Text>
+          </Pressable>
+        )}
       </Pressable>
     </View>
   );
@@ -90,5 +96,6 @@ const st = themed(() => ({
   sug: { borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
   composer: { flexDirection: 'row', gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg, alignItems: 'flex-end' },
   input: { flex: 1, minHeight: 46, maxHeight: 120, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, backgroundColor: C.surface, color: C.fg },
+  listen: { flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', marginTop: 8, paddingVertical: 4 },
   send: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center' },
 }));
