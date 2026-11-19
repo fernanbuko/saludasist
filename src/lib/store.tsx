@@ -21,7 +21,7 @@ import {
   type Account,
 } from './cloud';
 import { dkey, findInstance, fmtStock, normalizeMed, stockInfo } from './dose';
-import { waterOf, type WaterSettings } from './water';
+import { refreshWater, waterOf, type WaterSettings } from './water';
 import { eventText, notifyMissed, notifyNewEvents } from './family';
 import { auth } from './firebase';
 import { cancelDoseReminders, cancelFollowUp, notifyFamily, rescheduleAll } from './notifications';
@@ -376,9 +376,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       const n = Math.max(0, (d.waterLog?.[today] ?? 0) + delta);
       // Solo se guardan los últimos 14 días.
       const keep = Object.fromEntries(Object.entries(d.waterLog ?? {}).filter(([k]) => k >= dkey(new Date(Date.now() - 14 * 86400e3))));
-      commitDevice({ ...d, waterLog: { ...keep, [today]: n } });
+      const next = { ...d, waterLog: { ...keep, [today]: n } };
+      commitDevice(next);
+      // Al llegar a la meta no se avisa más hoy; si se quita un vaso, vuelven los avisos.
+      if (patientRefState.current && account && patientRefState.current.ownerUid === account.uid) refreshWater(next).catch(() => {});
     },
-    [commitDevice],
+    [commitDevice, account],
   );
 
   const setVoice = useCallback((v: boolean) => commitDevice({ ...devRef.current, voice: v }), [commitDevice]);

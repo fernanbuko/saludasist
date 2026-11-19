@@ -2,7 +2,7 @@
   "expo": {
     "name": "SaludAsist",
     "slug": "saludasist",
-    "version": "2.8.0",
+    "version": "2.8.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -11,7 +11,7 @@
     },
     "android": {
       "package": "com.saludasist.app",
-      "versionCode": 25,
+      "versionCode": 26,
       "adaptiveIcon": {
         "backgroundColor": "#3A6EA5",
         "foregroundImage": "./assets/android-icon-foreground.png",
