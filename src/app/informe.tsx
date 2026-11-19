@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Share, Text, View } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
@@ -8,7 +8,7 @@ import { Btn, Card, Header, ScreenTitle, s } from '../components/ui';
 import { fmtTime } from '../lib/dose';
 import { buildReport, patientLines, reportFileName, reportHtml, reportText } from '../lib/report';
 import { useApp } from '../lib/store';
-import { C } from '../theme';
+import { C, themed } from '../theme';
 
 const PERIODS = [7, 14, 30];
 
@@ -128,9 +128,9 @@ function Kpi({ value, label, warn }: { value: string; label: string; warn?: bool
   );
 }
 
-const st = StyleSheet.create({
+const st = themed(() => ({
   h: { fontSize: 17, fontWeight: '800', color: C.fg },
   kpis: { flexDirection: 'row', gap: 8 },
   kpi: { flex: 1, backgroundColor: C.surface2, borderRadius: 12, padding: 10, alignItems: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, borderTopWidth: 1, borderTopColor: C.line, paddingTop: 8 },
-});
+}));

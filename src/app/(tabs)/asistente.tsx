@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View, type ScrollViewInstance } from 'react-native';
 import { speak } from '../../lib/voice';
 import { Avatar, Icon } from '../../components/art';
 import { Header, s } from '../../components/ui';
 import { AiError, askAssistant, type ChatTurn } from '../../lib/ai';
 import { useApp } from '../../lib/store';
-import { C } from '../../theme';
+import { C, themed } from '../../theme';
 
 const SUGGESTIONS = ['¿Qué me falta tomar hoy?', '¿Cómo voy esta semana?', '¿Se me olvidó alguna ayer?', '¿Qué hago si olvidé una pastilla?'];
 
@@ -61,7 +61,7 @@ export default function Asistente() {
           )}
         </ScrollView>
         <View style={st.composer}>
-          <TextInput style={st.input} value={input} onChangeText={setInput} placeholder="Escribe tu pregunta…" multiline onSubmitEditing={() => send(input)} />
+          <TextInput placeholderTextColor={C.muted} style={st.input} value={input} onChangeText={setInput} placeholder="Escribe tu pregunta…" multiline onSubmitEditing={() => send(input)} />
           <Pressable accessibilityLabel="Enviar" disabled={busy || !input.trim()} onPress={() => send(input)} style={[st.send, (busy || !input.trim()) && { opacity: 0.5 }]}>
             <Icon name="send" color="#fff" size={20} />
           </Pressable>
@@ -84,11 +84,11 @@ function AiMsg({ text }: { text: string }) {
   );
 }
 
-const st = StyleSheet.create({
+const st = themed(() => ({
   me: { alignSelf: 'flex-end', backgroundColor: C.brand, borderRadius: 16, borderBottomRightRadius: 4, padding: 12, maxWidth: '85%' },
   ai: { flexShrink: 1, backgroundColor: C.surface, borderColor: C.line, borderWidth: 1, borderRadius: 16, borderBottomLeftRadius: 4, padding: 12 },
   sug: { borderWidth: 1, borderColor: C.line, backgroundColor: C.surface, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 8 },
   composer: { flexDirection: 'row', gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.bg, alignItems: 'flex-end' },
   input: { flex: 1, minHeight: 46, maxHeight: 120, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, backgroundColor: C.surface, color: C.fg },
   send: { width: 46, height: 46, borderRadius: 23, backgroundColor: C.brand, alignItems: 'center', justifyContent: 'center' },
-});
+}));

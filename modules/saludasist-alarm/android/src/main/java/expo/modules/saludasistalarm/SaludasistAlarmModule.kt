@@ -48,20 +48,24 @@ class SaludasistAlarmModule : Module() {
     open(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + ctx.packageName)))
   }
 
-  /** Botones de la barra de navegación del sistema en oscuro: la app usa fondos claros. */
+  /** Botones de la barra de navegación del sistema: oscuros con la app en modo claro, claros en modo oscuro. */
+  @Volatile private var darkButtons = true
+
   private fun darkNavButtons() {
+    val dark = darkButtons
     val a = appContext.currentActivity ?: return
     a.runOnUiThread {
       try {
         val w = a.window
         if (Build.VERSION.SDK_INT >= 30) {
           w.insetsController?.setSystemBarsAppearance(
-            android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
+            if (dark) android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS else 0,
             android.view.WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS,
           )
         } else if (Build.VERSION.SDK_INT >= 26) {
+          val f = android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
           @Suppress("DEPRECATION")
-          w.decorView.systemUiVisibility = w.decorView.systemUiVisibility or android.view.View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+          w.decorView.systemUiVisibility = if (dark) w.decorView.systemUiVisibility or f else w.decorView.systemUiVisibility and f.inv()
         }
       } catch (_: Throwable) {}
     }
@@ -75,6 +79,11 @@ class SaludasistAlarmModule : Module() {
     }
 
     Function("darkNavButtons") {
+      darkNavButtons()
+    }
+
+    Function("setNavButtonsDark") { dark: Boolean ->
+      darkButtons = dark
       darkNavButtons()
     }
 

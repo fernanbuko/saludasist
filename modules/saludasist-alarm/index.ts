@@ -35,6 +35,8 @@ export interface SaludasistAlarmModule {
   logSummary(): void;
   /** Botones de navegación del sistema en oscuro (la app tiene fondos claros). */
   darkNavButtons(): void;
+  /** true: botones oscuros (app en modo claro); false: botones claros (modo oscuro). */
+  setNavButtonsDark(dark: boolean): void;
 }
 
 export default requireOptionalNativeModule<SaludasistAlarmModule>('SaludasistAlarm');

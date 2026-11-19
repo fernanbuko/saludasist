@@ -1,11 +1,11 @@
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { doseTxt, fmtTime, STATUS_TXT, statusOf } from '../lib/dose';
 import { useApp } from '../lib/store';
 import type { DoseInstance, DoseStatus } from '../lib/types';
-import { C, shadow } from '../theme';
+import { C, shadow, themed } from '../theme';
 import { Avatar, Icon, PillIcon } from './art';
 
 export function Header({ title, back, right }: { title: string; back?: boolean; right?: React.ReactNode }) {
@@ -132,8 +132,8 @@ function Round({ bg, fg = '#fff', icon, label, onPress }: { bg: string; fg?: str
   );
 }
 
-export const s = StyleSheet.create({
-  header: { backgroundColor: C.brand, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingBottom: 12 },
+export const s = themed(() => ({
+  header: { backgroundColor: C.header, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingBottom: 12 },
   headerSide: { width: 44 },
   headerTitle: { flex: 1, textAlign: 'center', color: '#fff', fontSize: 20, fontWeight: '800' },
   screenTitle: { fontSize: 24, fontWeight: '900', color: C.brand, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.3, marginVertical: 4 },
@@ -154,4 +154,4 @@ export const s = StyleSheet.create({
   label: { fontSize: 12, fontWeight: '700', letterSpacing: 0.8, color: C.muted, textTransform: 'uppercase' },
   screen: { padding: 16, gap: 14, paddingBottom: 32 },
   sub: { fontSize: 13, color: C.muted, lineHeight: 18 },
-});
+}));

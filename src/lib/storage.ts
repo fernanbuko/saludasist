@@ -26,7 +26,10 @@ export interface DeviceState {
   familyChecksFrom: number; // los avisos de dosis olvidadas empiezan a contar desde aquí
   water?: WaterSettings; // recordatorio de agua (apagado si no existe)
   waterLog?: Record<string, number>; // vasos de agua por día (YYYY-MM-DD)
+  theme?: ThemeMode; // modo de color (automático si no existe)
 }
+
+export type ThemeMode = 'auto' | 'light' | 'dark';
 
 export const defaultDevice = (): DeviceState => ({ voice: true, alarmMode: true, snooze: {}, alerted: {}, lastEventAt: Date.now(), familyChecksFrom: Date.now() });
 

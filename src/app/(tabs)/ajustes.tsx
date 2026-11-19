@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Linking, ScrollView, Share, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Linking, ScrollView, Share, Switch, Text, TextInput, View } from 'react-native';
 import { AvisosCheck } from '../../components/AvisosCheck';
 import { WaterSettingsCard } from '../../components/Water';
 import { Btn, Card, Header, s } from '../../components/ui';
@@ -8,10 +8,10 @@ import { router } from 'expo-router';
 import { ageFrom, fmtDateShort, missingProfile, SEX_TXT } from '../../lib/dose';
 import { useApp } from '../../lib/store';
 import { checkForUpdate, installedVersionName, openUpdate, type UpdateInfo } from '../../lib/updates';
-import { C } from '../../theme';
+import { C, themed } from '../../theme';
 
 export default function Ajustes() {
-  const { state, account, role, members, ownerUid, profile, setPatientName, setVoice, createInvite, removeMember, leave, signOut } = useApp();
+  const { state, account, role, members, ownerUid, profile, setPatientName, setVoice, themeMode, setThemeMode, createInvite, removeMember, leave, signOut } = useApp();
   const set = state.settings;
   const [name, setName] = useState(set.patientName);
   const [code, setCode] = useState<string | null>(null);
@@ -86,7 +86,7 @@ export default function Ajustes() {
 
         <Card>
           <Text style={st.h}>{isOwner ? 'Persona que toma la medicación' : 'Medicación que acompañas'}</Text>
-          <TextInput
+          <TextInput placeholderTextColor={C.muted}
             style={st.input}
             value={name}
             onChangeText={setName}
@@ -95,6 +95,24 @@ export default function Ajustes() {
             editable={isOwner}
           />
           <Row label="Leer los avisos en voz alta en este teléfono" value={set.voice} onChange={setVoice} />
+        </Card>
+
+        <Card>
+          <Text style={st.h}>Apariencia</Text>
+          <Text style={s.sub}>«Automático» usa el modo claro u oscuro que tenga el teléfono.</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {(
+              [
+                ['auto', 'Automático'],
+                ['light', 'Claro'],
+                ['dark', 'Oscuro'],
+              ] as const
+            ).map(([m, l]) => (
+              <View key={m} style={{ flex: 1 }}>
+                <Btn small kind={themeMode === m ? 'primary' : 'soft'} title={l} onPress={() => setThemeMode(m)} />
+              </View>
+            ))}
+          </View>
         </Card>
 
         <AvisosCheck />
@@ -224,9 +242,9 @@ function Row({ label, value, onChange }: { label: string; value: boolean; onChan
   );
 }
 
-const st = StyleSheet.create({
+const st = themed(() => ({
   h: { fontSize: 17, fontWeight: '800', color: C.fg },
   input: { borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: C.fg, backgroundColor: C.surface2 },
   code: { fontSize: 38, fontWeight: '900', letterSpacing: 8, textAlign: 'center', color: C.brandDeep, backgroundColor: C.surface2, borderRadius: 12, paddingVertical: 14, fontFamily: 'monospace' },
   member: { flexDirection: 'row', alignItems: 'center', gap: 10, borderTopWidth: 1, borderTopColor: C.line, paddingTop: 10 },
-});
+}));

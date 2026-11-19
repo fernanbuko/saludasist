@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { AppState as RNAppState } from 'react-native';
+import { AppState as RNAppState, useColorScheme } from 'react-native';
+import { applyTheme } from '../theme';
 import { onAuthStateChanged } from 'firebase/auth';
 import { onSnapshot } from 'firebase/firestore';
 import { signOutAll } from './authGoogle';
@@ -24,7 +25,7 @@ import { waterOf, type WaterSettings } from './water';
 import { eventText, notifyMissed, notifyNewEvents } from './family';
 import { auth } from './firebase';
 import { cancelDoseReminders, cancelFollowUp, notifyFamily, rescheduleAll } from './notifications';
-import { clearLegacy, defaultDevice, loadCache, loadDevice, loadLegacy, saveCache, saveDevice, type DeviceState } from './storage';
+import { clearLegacy, defaultDevice, loadCache, loadDevice, loadLegacy, saveCache, saveDevice, type DeviceState, type ThemeMode } from './storage';
 import type { AppState, EventType, LogEntry, Med, Member, PatientDoc, PatientProfile } from './types';
 
 /**
@@ -62,6 +63,10 @@ interface Ctx {
   saveProfile: (p: PatientProfile) => Promise<void>;
   alarmMode: boolean;
   setAlarmMode: (v: boolean) => void;
+  themeMode: ThemeMode;
+  /** La app se ve en modo oscuro (por el teléfono o porque se eligió en Ajustes). */
+  dark: boolean;
+  setThemeMode: (m: ThemeMode) => void;
   water: WaterSettings;
   setWater: (w: WaterSettings) => void;
   waterToday: number;
@@ -362,6 +367,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [commitDevice, account],
   );
 
+  const setThemeMode = useCallback((m: ThemeMode) => commitDevice({ ...devRef.current, theme: m }), [commitDevice]);
+
   const addWater = useCallback(
     (delta: number) => {
       const d = devRef.current;
@@ -429,6 +436,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     await signOutAll();
   }, []);
 
+  // Modo claro/oscuro: al cambiar, todas las pantallas (que usan este contexto) se vuelven a dibujar con la nueva paleta.
+  const scheme = useColorScheme();
+  const themeMode = device.theme ?? 'auto';
+  const dark = themeMode === 'dark' || (themeMode === 'auto' && scheme === 'dark');
+  applyTheme(dark);
+
   const value: Ctx = {
     status,
     account,
@@ -452,6 +465,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     saveProfile,
     alarmMode: device.alarmMode !== false,
     setAlarmMode,
+    themeMode,
+    dark,
+    setThemeMode,
     water: waterOf(device.water),
     setWater,
     waterToday: device.waterLog?.[dkey(new Date())] ?? 0,

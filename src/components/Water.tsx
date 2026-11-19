@@ -1,7 +1,7 @@
-import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, Switch, Text, View } from 'react-native';
 import { useApp } from '../lib/store';
 import { waterHours, type WaterSettings } from '../lib/water';
-import { C } from '../theme';
+import { C, themed } from '../theme';
 import { Btn, Card, s } from './ui';
 
 /** Contador de vasos de agua de hoy (pantalla Hoy, solo si el recordatorio está activado). */
@@ -95,11 +95,11 @@ function Opt({ label, values, value, fmt, onPick }: { label: string; values: num
   );
 }
 
-const st = StyleSheet.create({
+const st = themed(() => ({
   glasses: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   glass: { width: 26, height: 32, borderRadius: 6, borderWidth: 2, borderColor: C.brand, backgroundColor: C.surface },
-  glassOn: { backgroundColor: '#5AA9E6', borderColor: '#3A8CC9' },
+  glassOn: { backgroundColor: C.water, borderColor: C.water },
   chip: { borderWidth: 1, borderColor: C.line, backgroundColor: C.surface2, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
   chipOn: { backgroundColor: C.chip, borderColor: C.chip },
   chipText: { fontWeight: '700', color: C.muted, fontSize: 14 },
-});
+}));

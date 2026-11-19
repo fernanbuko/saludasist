@@ -103,30 +103,40 @@ export default function RootLayout() {
       <StoreProvider>
         <StatusBar style="light" />
         <NotificationRouter />
-        <AppStack />
+        <ThemedStack />
       </StoreProvider>
     </SafeAreaProvider>
   );
 }
 
-/** Pantallas sin pestañas: dejan libre el espacio de la barra de navegación del sistema. */
-function AppStack() {
-  const bottom = useSafeAreaInsets().bottom;
-  // Con el teléfono en modo oscuro, Android pinta blancos los botones ◁ ○ □ sobre la barra clara: forzarlos oscuros.
+/**
+ * Modo claro u oscuro: «Automático» sigue al teléfono; también se puede fijar en Ajustes.
+ * La paleta la aplica el StoreProvider; aquí se ajustan los botones del sistema.
+ */
+function ThemedStack() {
+  const { dark } = useApp();
+  // Botones ◁ ○ □ del sistema: oscuros sobre la app clara y claros sobre la oscura (si no, no se ven).
   useEffect(() => {
-    const dark = () => {
+    const apply = () => {
       try {
-        Alarm?.darkNavButtons();
+        Alarm?.setNavButtonsDark(!dark);
       } catch {}
     };
-    dark();
-    const t = setTimeout(dark, 600);
-    const sub = Appearance.addChangeListener(() => setTimeout(dark, 100));
+    apply();
+    const t = setTimeout(apply, 600);
+    const sub = Appearance.addChangeListener(() => setTimeout(apply, 100));
     return () => {
       clearTimeout(t);
       sub.remove();
     };
-  }, []);
+  }, [dark]);
+  return <AppStack />;
+}
+
+/** Pantallas sin pestañas: dejan libre el espacio de la barra de navegación del sistema. */
+function AppStack() {
+  useApp(); // se vuelve a dibujar al cambiar el modo claro/oscuro
+  const bottom = useSafeAreaInsets().bottom;
   const padded = { contentStyle: { backgroundColor: C.bg, paddingBottom: bottom } };
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.bg } }}>

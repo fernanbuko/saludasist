@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
@@ -8,7 +8,7 @@ import { Btn } from '../components/ui';
 import { SignInError, signInWithGoogle } from '../lib/authGoogle';
 import { requestPermission } from '../lib/notifications';
 import { useApp } from '../lib/store';
-import { C } from '../theme';
+import { C, themed } from '../theme';
 
 export default function Bienvenida() {
   const { status } = useApp();
@@ -75,8 +75,8 @@ function GoogleG() {
   );
 }
 
-const st = StyleSheet.create({
-  hero: { backgroundColor: C.brand, alignItems: 'center', paddingBottom: 100, borderBottomLeftRadius: 200, borderBottomRightRadius: 200, gap: 6 },
+const st = themed(() => ({
+  hero: { backgroundColor: C.header, alignItems: 'center', paddingBottom: 100, borderBottomLeftRadius: 200, borderBottomRightRadius: 200, gap: 6 },
   brand: { color: '#fff', fontSize: 36, fontWeight: '900' },
   body: { marginTop: -84, alignItems: 'center', gap: 18, paddingHorizontal: 24, paddingBottom: 40 },
   avatar: { width: 160, height: 160, borderRadius: 80, overflow: 'hidden', borderWidth: 5, borderColor: '#fff', backgroundColor: C.surface2 },
@@ -84,4 +84,4 @@ const st = StyleSheet.create({
   bullet: { fontSize: 15, color: C.muted, lineHeight: 21 },
   small: { flex: 1, fontSize: 12.5, color: C.muted },
   error: { color: C.bad, textAlign: 'center', fontSize: 14 },
-});
+}));

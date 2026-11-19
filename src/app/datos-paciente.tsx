@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Icon } from '../components/art';
@@ -7,7 +7,7 @@ import { Btn, Card, Header, ScreenTitle, s } from '../components/ui';
 import { ageFrom, dkey, fmtDateShort, missingProfile } from '../lib/dose';
 import { useApp } from '../lib/store';
 import type { PatientProfile, Sex } from '../lib/types';
-import { C } from '../theme';
+import { C, themed } from '../theme';
 
 /** Ficha del paciente: se usa en el informe para el médico y la ve también la familia. */
 export default function DatosPaciente() {
@@ -87,7 +87,7 @@ export default function DatosPaciente() {
           </Text>
           <Card>
             <Field label="Nombre y apellidos *">
-              <TextInput style={st.input} value={fullName} onChangeText={setFullName} placeholder="Ej. Carmen López García" autoCapitalize="words" />
+              <TextInput placeholderTextColor={C.muted} style={st.input} value={fullName} onChangeText={setFullName} placeholder="Ej. Carmen López García" autoCapitalize="words" />
             </Field>
             <Field label="Fecha de nacimiento *">
               <Pressable onPress={pickDate} style={st.date} accessibilityRole="button">
@@ -122,20 +122,20 @@ export default function DatosPaciente() {
                 <Text style={[st.chipText, allergies === NONE && { color: '#fff' }]}>No tiene alergias conocidas</Text>
               </Pressable>
               {allergies !== NONE && (
-                <TextInput style={st.input} value={allergies} onChangeText={setAllergies} placeholder="Ej. Penicilina, ibuprofeno" multiline />
+                <TextInput placeholderTextColor={C.muted} style={st.input} value={allergies} onChangeText={setAllergies} placeholder="Ej. Penicilina, ibuprofeno" multiline />
               )}
             </Field>
             <Field label="Enfermedades o condiciones (opcional)">
-              <TextInput style={st.input} value={conditions} onChangeText={setConditions} placeholder="Ej. Hipertensión, diabetes tipo 2" multiline />
+              <TextInput placeholderTextColor={C.muted} style={st.input} value={conditions} onChangeText={setConditions} placeholder="Ej. Hipertensión, diabetes tipo 2" multiline />
             </Field>
             <Field label="Médico o centro de salud (opcional)">
-              <TextInput style={st.input} value={doctor} onChangeText={setDoctor} placeholder="Ej. Dra. Pérez – Centro de Salud Norte" />
+              <TextInput placeholderTextColor={C.muted} style={st.input} value={doctor} onChangeText={setDoctor} placeholder="Ej. Dra. Pérez – Centro de Salud Norte" />
             </Field>
           </Card>
           <Card>
             <Field label="Contacto de emergencia (opcional)">
-              <TextInput style={st.input} value={emergencyName} onChangeText={setEmergencyName} placeholder="Nombre y parentesco, ej. Fernando (hijo)" />
-              <TextInput style={st.input} value={emergencyPhone} onChangeText={setEmergencyPhone} placeholder="Teléfono" keyboardType="phone-pad" />
+              <TextInput placeholderTextColor={C.muted} style={st.input} value={emergencyName} onChangeText={setEmergencyName} placeholder="Nombre y parentesco, ej. Fernando (hijo)" />
+              <TextInput placeholderTextColor={C.muted} style={st.input} value={emergencyPhone} onChangeText={setEmergencyPhone} placeholder="Teléfono" keyboardType="phone-pad" />
             </Field>
           </Card>
           {!!msg && <Text style={{ color: C.bad, textAlign: 'center' }}>{msg}</Text>}
@@ -155,11 +155,11 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const st = StyleSheet.create({
+const st = themed(() => ({
   input: { borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: C.fg, backgroundColor: C.surface },
   date: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: C.surface2, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, borderWidth: 1, borderColor: C.line },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { borderWidth: 1, borderColor: C.line, backgroundColor: C.surface2, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 9 },
   chipOn: { backgroundColor: C.chip, borderColor: C.chip },
   chipText: { fontWeight: '700', color: C.muted, fontSize: 14 },
-});
+}));

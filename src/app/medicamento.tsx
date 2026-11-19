@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Icon } from '../components/art';
 import { Btn, Card, Header, ScreenTitle, s } from '../components/ui';
@@ -10,7 +10,7 @@ import { AiError, readMedBox } from '../lib/ai';
 import { COLORS, DAY_ORDER, DAYS, INTERVALS, LIQUID_QTY_UNITS, unitsFor, parseDose, MAX_INTERVAL_H, MIN_INTERVAL_H, dividesDay, dkey, doseDate, everyTxt, fmtDate, fmtTime, hhmmOf, intervalTimes, lastDose, newId, totalDoses } from '../lib/dose';
 import { useApp } from '../lib/store';
 import type { Med, MedType, ScheduleMode } from '../lib/types';
-import { C } from '../theme';
+import { C, themed } from '../theme';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const QUICK_DAYS = [3, 5, 7, 10, 14, 30];
@@ -157,7 +157,7 @@ export default function Medicamento() {
           </Card>
           <Card>
             <Field label="Nombre">
-              <TextInput style={st.input} value={name} onChangeText={setName} placeholder="Ej. Amoxicilina" autoCapitalize="sentences" />
+              <TextInput placeholderTextColor={C.muted} style={st.input} value={name} onChangeText={setName} placeholder="Ej. Amoxicilina" autoCapitalize="sentences" />
             </Field>
             <Field label="Tipo de medicamento">
               <View style={st.chips}>
@@ -167,7 +167,7 @@ export default function Medicamento() {
             </Field>
             <Field label="Dosis (cantidad de medicamento)">
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                <TextInput
+                <TextInput placeholderTextColor={C.muted}
                   style={[st.input, { width: 110, textAlign: 'center', fontSize: 18, fontWeight: '800' }]}
                   value={doseAmount}
                   onChangeText={(t) => setDoseAmount(t.replace(/[^0-9.,]/g, ''))}
@@ -185,7 +185,7 @@ export default function Medicamento() {
             </Field>
             <Field label="¿Cuántas toma cada vez?">
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                <TextInput style={[st.input, { width: 72, textAlign: 'center' }]} value={qty} onChangeText={setQty} keyboardType="decimal-pad" accessibilityLabel="Cuántas toma cada vez" />
+                <TextInput placeholderTextColor={C.muted} style={[st.input, { width: 72, textAlign: 'center' }]} value={qty} onChangeText={setQty} keyboardType="decimal-pad" accessibilityLabel="Cuántas toma cada vez" />
                 <Text style={{ color: C.fg }}>{type === 'liquid' ? qtyUnit : 'pastilla(s)'}</Text>
               </View>
               {type === 'liquid' && (
@@ -198,7 +198,7 @@ export default function Medicamento() {
             </Field>
             <Field label={type === 'liquid' ? `¿Cuánto te queda? (${qtyUnit})` : '¿Cuántas pastillas te quedan?'}>
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                <TextInput
+                <TextInput placeholderTextColor={C.muted}
                   style={[st.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]}
                   value={stockTxt}
                   onChangeText={(t) => setStockTxt(t.replace(/[^0-9.,]/g, ''))}
@@ -229,7 +229,7 @@ export default function Medicamento() {
             {durMode === 'doses' && (
               <Field label="Número de tomas en total">
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <TextInput style={[st.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={dosesTxt} onChangeText={(t) => setDosesTxt(t.replace(/[^0-9]/g, ''))} keyboardType="number-pad" accessibilityLabel="Número de tomas" maxLength={4} />
+                  <TextInput placeholderTextColor={C.muted} style={[st.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={dosesTxt} onChangeText={(t) => setDosesTxt(t.replace(/[^0-9]/g, ''))} keyboardType="number-pad" accessibilityLabel="Número de tomas" maxLength={4} />
                   <Text style={{ color: C.fg, fontSize: 16 }}>tomas</Text>
                 </View>
                 <View style={st.chips}>
@@ -243,7 +243,7 @@ export default function Medicamento() {
             {durMode === 'days' && (
               <Field label="Número de días">
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <TextInput style={[st.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={daysTxt} onChangeText={(t) => setDaysTxt(t.replace(/[^0-9]/g, ''))} keyboardType="number-pad" accessibilityLabel="Número de días" maxLength={4} />
+                  <TextInput placeholderTextColor={C.muted} style={[st.input, { width: 90, textAlign: 'center', fontSize: 18, fontWeight: '800' }]} value={daysTxt} onChangeText={(t) => setDaysTxt(t.replace(/[^0-9]/g, ''))} keyboardType="number-pad" accessibilityLabel="Número de días" maxLength={4} />
                   <Text style={{ color: C.fg, fontSize: 16 }}>días</Text>
                 </View>
                 <View style={st.chips}>
@@ -278,7 +278,7 @@ export default function Medicamento() {
                 <Field label="Cada cuántas horas">
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                     <Text style={{ color: C.fg, fontSize: 16 }}>Cada</Text>
-                    <TextInput
+                    <TextInput placeholderTextColor={C.muted}
                       style={[st.input, { width: 80, textAlign: 'center', fontSize: 18, fontWeight: '800' }, !validEvery && { borderColor: C.bad }]}
                       value={everyStr}
                       onChangeText={(t) => setEveryStr(t.replace(/[^0-9]/g, ''))}
@@ -353,7 +353,7 @@ export default function Medicamento() {
 
           <Card>
             <Field label="Añadir nota">
-              <TextInput style={st.input} value={note} onChangeText={setNote} placeholder="Ej. con comida" />
+              <TextInput placeholderTextColor={C.muted} style={st.input} value={note} onChangeText={setNote} placeholder="Ej. con comida" />
             </Field>
             <Field label="Color">
               <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -446,7 +446,7 @@ function firstDoses(startDate: string, startTime: string, everyHours: number, n:
   });
 }
 
-const st = StyleSheet.create({
+const st = themed(() => ({
   input: { borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: C.fg, backgroundColor: C.surface },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: { borderWidth: 1, borderColor: C.line, backgroundColor: C.surface2, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 9, alignSelf: 'flex-start' },
@@ -460,4 +460,4 @@ const st = StyleSheet.create({
   summary: { backgroundColor: C.surface2, borderRadius: 12, padding: 12, gap: 4 },
   summaryTitle: { fontSize: 12, fontWeight: '800', letterSpacing: 0.8, color: C.muted, textTransform: 'uppercase' },
   summaryText: { fontSize: 16, fontWeight: '700', color: C.fg },
-});
+}));

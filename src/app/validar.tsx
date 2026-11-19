@@ -8,7 +8,7 @@ import { Btn, Header, ScreenTitle, Speak, s } from '../components/ui';
 import { AiError, verifyPhoto, type Verdict } from '../lib/ai';
 import { doseTxt, findInstance, fmtTime, unitTxt } from '../lib/dose';
 import { useApp } from '../lib/store';
-import { C } from '../theme';
+import { C, themed } from '../theme';
 
 type Result = { ok: boolean; text: string; conf?: number; error?: boolean; code?: AiError['code'] };
 
@@ -171,7 +171,7 @@ export default function Validar() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themed(() => ({
   capture: { aspectRatio: 4 / 3, borderRadius: 18, overflow: 'hidden', backgroundColor: C.surface2, borderWidth: 1, borderColor: C.line, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center' },
   corner: { position: 'absolute', width: 28, height: 28, borderColor: '#fff', borderWidth: 0 },
   tl: { top: 14, left: 14, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 8 },
@@ -180,4 +180,4 @@ const st = StyleSheet.create({
   br: { bottom: 14, right: 14, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 8 },
   verdict: { borderRadius: 14, padding: 14, gap: 6 },
   verdictTitle: { fontSize: 17, fontWeight: '800', color: C.fg },
-});
+}));

@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { Icon } from '../../components/art';
 import { router } from 'expo-router';
 import { Btn, Card, DoseRow, Header, s } from '../../components/ui';
 import { adherence, dayScore, dkey, instancesFor, parseKey, streak } from '../../lib/dose';
 import { useApp } from '../../lib/store';
-import { C, shadow } from '../../theme';
+import { C, shadow, themed } from '../../theme';
 
 export default function Historial() {
   const { state, tick } = useApp();
@@ -121,7 +121,7 @@ const Legend = ({ c, t }: { c: string; t: string }) => (
   </View>
 );
 
-const st = StyleSheet.create({
+const st = themed(() => ({
   stats: { flexDirection: 'row', gap: 8 },
   stat: { flex: 1, backgroundColor: C.surface, borderRadius: 14, padding: 10, alignItems: 'center', ...shadow },
   calHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -132,4 +132,4 @@ const st = StyleSheet.create({
   day: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   sel: { borderWidth: 2, borderColor: C.brandDeep },
   today: { borderWidth: 2, borderColor: C.brand, borderStyle: 'dashed' },
-});
+}));

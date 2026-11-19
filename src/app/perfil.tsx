@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
 import { Btn, Card, Header, ScreenTitle, s } from '../components/ui';
 import { JoinError } from '../lib/cloud';
 import { useApp } from '../lib/store';
-import { C } from '../theme';
+import { C, themed } from '../theme';
 
 /** Primera vez con la cuenta: ¿esta persona toma la medicación o es un familiar con código? */
 export default function Perfil() {
@@ -54,7 +54,7 @@ export default function Perfil() {
               {mode === 'patient' ? (
                 <>
                   <Text style={st.label}>¿Cómo te llamas?</Text>
-                  <TextInput style={st.input} value={name} onChangeText={setName} placeholder="Ej. Carmen" autoCapitalize="words" />
+                  <TextInput placeholderTextColor={C.muted} style={st.input} value={name} onChangeText={setName} placeholder="Ej. Carmen" autoCapitalize="words" />
                   <Btn title={busy ? 'Creando…' : 'Empezar'} loading={busy} onPress={() => {
                       created.current = true;
                       run(() => createPatient(name));
@@ -73,7 +73,7 @@ export default function Perfil() {
               <Text style={s.sub}>Para acompañar la medicación de otra persona. Pídele el código en SaludAsist → Ajustes → «Compartir con un familiar».</Text>
               {mode === 'family' ? (
                 <>
-                  <TextInput
+                  <TextInput placeholderTextColor={C.muted}
                     style={[st.input, st.code]}
                     value={code}
                     onChangeText={(t) => setCode(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
@@ -100,9 +100,9 @@ export default function Perfil() {
   );
 }
 
-const st = StyleSheet.create({
+const st = themed(() => ({
   h: { fontSize: 18, fontWeight: '800', color: C.fg },
   label: { fontWeight: '700', fontSize: 15, color: C.fg },
   input: { borderWidth: 1, borderColor: C.line, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: C.fg, backgroundColor: C.surface2 },
   code: { fontSize: 26, fontWeight: '900', letterSpacing: 6, textAlign: 'center', fontFamily: 'monospace' },
-});
+}));

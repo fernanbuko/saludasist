@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { speak } from '../lib/voice';
@@ -8,7 +8,7 @@ import { Avatar, Icon } from '../components/art';
 import { Btn } from '../components/ui';
 import { dkey, fmtTime, instancesFor, statusOf } from '../lib/dose';
 import { useApp } from '../lib/store';
-import { C } from '../theme';
+import { C, themed } from '../theme';
 
 const FRASES = [
   'Cuidarte también es tomar tus medicinas a tiempo.',
@@ -100,8 +100,8 @@ export default function Saludo() {
   );
 }
 
-const st = StyleSheet.create({
-  root: { flex: 1, backgroundColor: C.brand, alignItems: 'center', paddingHorizontal: 24, gap: 10 },
+const st = themed(() => ({
+  root: { flex: 1, backgroundColor: C.header, alignItems: 'center', paddingHorizontal: 24, gap: 10 },
   avatar: { width: 160, height: 160, borderRadius: 80, overflow: 'hidden', borderWidth: 5, borderColor: '#fff', backgroundColor: C.surface2 },
   hello: { color: '#fff', fontSize: 32, fontWeight: '900', textAlign: 'center', marginTop: 12 },
   date: { color: '#D7E7F7', fontSize: 17, textAlign: 'center' },
@@ -111,4 +111,4 @@ const st = StyleSheet.create({
   warn: { color: '#FFE2B8', fontSize: 16, fontWeight: '700', textAlign: 'center' },
   quote: { color: '#D7E7F7', fontSize: 15, fontStyle: 'italic', textAlign: 'center', marginTop: 10 },
   speak: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.5)', marginBottom: 6 },
-});
+}));
