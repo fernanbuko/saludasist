@@ -1,0 +1,5 @@
+{
+  "versionCode": 30,
+  "versionName": "2.8.5",
+  "notes": "Voz más fiable: si el teléfono cerró el motor de voz en segundo plano, la app abre uno nuevo y vuelve a intentarlo."
+}
