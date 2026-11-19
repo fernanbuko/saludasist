@@ -76,20 +76,31 @@ const warn = (title: string, msg: string) => {
   ]);
 };
 
+/** Detiene la voz. */
+export function stopSpeaking() {
+  try {
+    Alarm?.stopSpeaking();
+  } catch {}
+  Speech.stop().catch(() => {});
+}
+
 /** Lee un texto en voz alta en español. Si no se puede, lo explica en vez de quedarse en silencio. */
 export async function speak(text: string) {
-  const voice = await pickVoice();
-  if (voice === '') {
-    warn('No hay voz en español', 'Para que SaludAsist pueda hablar, instala la voz en español en los ajustes del teléfono («Salida de texto a voz»).');
-    return;
-  }
-  await Speech.stop().catch(() => {});
   const parts = chunks(clean(text));
-  parts.forEach((p, i) =>
-    Speech.speak(p, {
-      language: 'es',
-      ...(voice ? { voice } : {}),
-      onError: i === 0 ? () => warn('No se pudo leer en voz alta', 'Revisa en los ajustes del teléfono («Salida de texto a voz») que esté instalada la voz en español.') : undefined,
-    }),
-  );
+  if (!parts.length) return;
+  const noSpanish = () => warn('No hay voz en español', 'Para que SaludAsist pueda hablar, instala la voz en español en los ajustes del teléfono («Salida de texto a voz»).');
+  const failed = () => warn('No se pudo leer en voz alta', 'Revisa en los ajustes del teléfono («Salida de texto a voz») que esté instalada la voz en español.');
+  // Android: motor de voz propio, como la alarma (se reinicia solo si el teléfono lo cerró).
+  if (Alarm && Platform.OS === 'android') {
+    try {
+      const r = await Alarm.speak(parts);
+      if (r === 'ok') return;
+      if (r === 'nospanish') return noSpanish();
+    } catch {}
+  }
+  // Respaldo: expo-speech.
+  const voice = await pickVoice();
+  if (voice === '') return noSpanish();
+  await Speech.stop().catch(() => {});
+  parts.forEach((p, i) => Speech.speak(p, { language: 'es', ...(voice ? { voice } : {}), onError: i === 0 ? failed : undefined }));
 }

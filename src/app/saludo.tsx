@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import * as Speech from 'expo-speech';
-import { speak } from '../lib/voice';
+import { speak, stopSpeaking } from '../lib/voice';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar, Icon } from '../components/art';
 import { Btn } from '../components/ui';
@@ -35,7 +34,7 @@ export default function Saludo() {
   const go = () => {
     if (left.current) return;
     left.current = true;
-    Speech.stop();
+    stopSpeaking();
     router.replace('/(tabs)');
   };
 

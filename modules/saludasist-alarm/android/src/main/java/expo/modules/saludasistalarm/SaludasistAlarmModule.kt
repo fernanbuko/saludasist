@@ -178,6 +178,15 @@ class SaludasistAlarmModule : Module() {
       }
     }
 
+    // Leer en voz alta con un motor de voz propio (se reinicia solo si el teléfono lo cerró).
+    AsyncFunction("speak") { parts: List<String>, promise: expo.modules.kotlin.Promise ->
+      NativeSpeech.speak(ctx, parts) { r -> promise.resolve(r) }
+    }
+
+    Function("stopSpeaking") {
+      NativeSpeech.stop()
+    }
+
     Function("missedAlarms") {
       AlarmScheduler.missed(ctx)
     }
