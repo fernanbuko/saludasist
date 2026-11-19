@@ -16,8 +16,9 @@ class AlarmReceiver : BroadcastReceiver() {
     AlarmScheduler.log(ctx, "Recibida la hora de la alarma: $title")
     when (intent.action) {
       AlarmScheduler.ACTION_FIRE -> {
-        AlarmScheduler.recordLate(ctx, id, title, intent.getLongExtra(AlarmScheduler.EXTRA_AT, 0L))
-        AlarmScheduler.showAlarm(ctx, id, title, detail, time, speak)
+        val at = intent.getLongExtra(AlarmScheduler.EXTRA_AT, 0L)
+        if (!AlarmScheduler.alreadyShown(ctx, id, at)) AlarmScheduler.recordLate(ctx, id, title, at)
+        AlarmScheduler.showAlarm(ctx, id, title, detail, time, speak, at)
       }
       AlarmScheduler.ACTION_SNOOZE -> {
         AlarmScheduler.snooze(ctx, id, title, detail, time, speak)

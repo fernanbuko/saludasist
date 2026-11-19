@@ -37,6 +37,15 @@
         android:value="Mantener activos los recordatorios de medicación que programa el usuario" />
     </service>
     <activity
+      android:name="expo.modules.saludasistalarm.AlarmTrampoline"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:noHistory="true"
+      android:taskAffinity="com.saludasist.alarm"
+      android:showWhenLocked="true"
+      android:turnScreenOn="true"
+      android:theme="@android:style/Theme.NoDisplay" />
+    <activity
       android:name="expo.modules.saludasistalarm.AlarmActivity"
       android:exported="false"
       android:excludeFromRecents="true"

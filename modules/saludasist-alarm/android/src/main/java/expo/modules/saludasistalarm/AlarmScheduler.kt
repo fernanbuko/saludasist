@@ -92,8 +92,9 @@ object AlarmScheduler {
 
   /** La alarma llegó con retraso (el sistema retuvo la app): se registra para avisar al abrir la app. */
   fun recordLate(ctx: Context, id: String, title: String, atMs: Long) {
-    val min = (System.currentTimeMillis() - atMs) / 60_000L
-    if (atMs <= 0L || min < 3 || id == "prueba") return
+    val lateMs = System.currentTimeMillis() - atMs
+    if (atMs <= 0L || lateMs < 40_000L || id == "prueba") return
+    val min = maxOf(1L, (lateMs + 30_000L) / 60_000L)
     log(ctx, "LLEGÓ TARDE ($min min): $title de las ${hhmm(atMs)}")
     try {
       val list = try { org.json.JSONArray(prefs(ctx).getString("missed", "[]")) } catch (_: Throwable) { org.json.JSONArray() }
@@ -142,7 +143,7 @@ object AlarmScheduler {
         val title = j.optString("title"); val detail = j.optString("detail"); val time = j.optString("time"); val speak = j.optBoolean("speak", true)
         when {
           at > now -> { schedule(ctx, id, at, title, detail, time, speak, quiet = true); n++ }
-          now - at < 60 * 60 * 1000L -> showAlarm(ctx, id, title, detail, time, speak)
+          now - at < 60 * 60 * 1000L -> showAlarm(ctx, id, title, detail, time, speak, at)
           else -> { recordMissed(ctx, id, if (reason == "teléfono reiniciado") "el teléfono estaba apagado" else "el sistema la borró"); setIds(ctx, ids(ctx) - id); dropData(ctx, id) }
         }
       } catch (_: Throwable) {}
@@ -164,6 +165,30 @@ object AlarmScheduler {
     return PendingIntent.getBroadcast(ctx, rc(id), i, PendingIntent.FLAG_UPDATE_CURRENT or immutable())
   }
 
+  /** Segunda vía: el sistema abre directamente la pantalla de la alarma (para teléfonos que retienen los avisos a la app). */
+  private const val DIRECT_DELAY_MS = 5_000L
+
+  private fun directIntent(ctx: Context, id: String, title: String, detail: String, time: String, speak: Boolean, atMs: Long): PendingIntent {
+    val i = Intent(ctx, AlarmTrampoline::class.java).apply {
+      action = "expo.modules.saludasistalarm.DIRECT"
+      data = Uri.parse("saludasist-alarm://" + Uri.encode(id))
+      flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_USER_ACTION
+      putExtra(EXTRA_ID, id)
+      putExtra(EXTRA_TITLE, title)
+      putExtra(EXTRA_DETAIL, detail)
+      putExtra(EXTRA_TIME, time)
+      putExtra(EXTRA_SPEAK, speak)
+      putExtra(EXTRA_AT, atMs)
+    }
+    return PendingIntent.getActivity(ctx, rc(id) + 5, i, PendingIntent.FLAG_UPDATE_CURRENT or immutable())
+  }
+
+  /** ¿Ya se mostró la alarma de esta toma a esta hora? Evita que suene dos veces (una por cada vía). */
+  fun alreadyShown(ctx: Context, id: String, atMs: Long) = atMs > 0L && prefs(ctx).getLong("shown:$id", 0L) == atMs
+  private fun markShown(ctx: Context, id: String, atMs: Long) {
+    if (atMs > 0L) prefs(ctx).edit().putLong("shown:$id", atMs).commit()
+  }
+
   fun canScheduleExact(ctx: Context): Boolean {
     if (Build.VERSION.SDK_INT < 31) return true
     return ctx.getSystemService(AlarmManager::class.java).canScheduleExactAlarms()
@@ -176,6 +201,9 @@ object AlarmScheduler {
     if (canScheduleExact(ctx)) {
       val show = PendingIntent.getActivity(ctx, rc(id), alarmActivityIntent(ctx, id, title, detail, time, speak), PendingIntent.FLAG_UPDATE_CURRENT or immutable())
       am.setAlarmClock(AlarmManager.AlarmClockInfo(atMs, show), fire)
+      try {
+        am.setAlarmClock(AlarmManager.AlarmClockInfo(atMs + DIRECT_DELAY_MS, show), directIntent(ctx, id, title, detail, time, speak, atMs))
+      } catch (_: Throwable) {}
     } else if (Build.VERSION.SDK_INT >= 23) {
       am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMs, fire)
     } else {
@@ -188,6 +216,7 @@ object AlarmScheduler {
   fun cancel(ctx: Context, id: String) {
     val am = ctx.getSystemService(AlarmManager::class.java)
     am.cancel(fireIntent(ctx, id, "", "", "", false))
+    am.cancel(directIntent(ctx, id, "", "", "", false, 0L))
     setIds(ctx, ids(ctx) - id)
     dropData(ctx, id)
   }
@@ -196,6 +225,7 @@ object AlarmScheduler {
     if (ids(ctx).isNotEmpty()) log(ctx, "Reprogramando: se quitan ${ids(ctx).size} alarmas anteriores")
     for (id in ids(ctx).toList()) {
       ctx.getSystemService(AlarmManager::class.java).cancel(fireIntent(ctx, id, "", "", "", false))
+      ctx.getSystemService(AlarmManager::class.java).cancel(directIntent(ctx, id, "", "", "", false, 0L))
       recordMissed(ctx, id, "el teléfono cerró la app")
       dropData(ctx, id)
     }
@@ -237,7 +267,12 @@ object AlarmScheduler {
   }
 
   /** Muestra la alarma: pantalla completa si el sistema lo permite; si no, notificación insistente. */
-  fun showAlarm(ctx: Context, id: String, title: String, detail: String, time: String, speak: Boolean) {
+  fun showAlarm(ctx: Context, id: String, title: String, detail: String, time: String, speak: Boolean, atMs: Long = 0L) {
+    if (alreadyShown(ctx, id, atMs)) {
+      log(ctx, "Ya mostrada por la otra vía: $title")
+      return
+    }
+    markShown(ctx, id, atMs)
     setIds(ctx, ids(ctx) - id)
     dropData(ctx, id)
     try {
